@@ -1,4 +1,4 @@
-# grasshopper
+# locust
 Better navigate changes to Python code across git commits
 
 ## Dependencies
