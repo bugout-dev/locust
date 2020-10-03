@@ -2,7 +2,9 @@
 git-related utilities
 """
 import argparse
-from typing import Any, List, Optional
+from dataclasses import asdict, dataclass
+import json
+from typing import Any, List, Optional, Tuple
 
 import pygit2
 
@@ -11,6 +13,27 @@ class GitRepositoryNotFound(Exception):
     """
     Raised when a git repository was not found where one was expected.
     """
+
+
+@dataclass
+class LineInfo:
+    old_line_number: int
+    new_line_number: int
+    line_type: str
+    line: str
+
+
+@dataclass
+class HunkInfo:
+    header: str
+    lines: List[LineInfo]
+
+
+@dataclass
+class PatchInfo:
+    old_file: str
+    new_file: str
+    hunks: List[HunkInfo]
 
 
 def get_repository(path: str = ".") -> pygit2.Repository:
@@ -25,17 +48,49 @@ def get_repository(path: str = ".") -> pygit2.Repository:
 
 
 def get_patches(
-    repository: pygit2.Repository, initial: Optional[str], terminal: Optional[str]
-) -> List[Any]:
+    repository: pygit2.Repository,
+    initial: Optional[str] = None,
+    terminal: Optional[str] = None,
+) -> List[PatchInfo]:
     """
     Returns a list of patches taking the given repository from the initial revision to the terminal
     one.
     """
     diff = repository.diff(a=initial, b=terminal, context_lines=0)
-    return [patch for patch in diffs]
+    return [
+        PatchInfo(
+            old_file=patch.delta.old_file.path,
+            new_file=patch.delta.new_file.path,
+            hunks=[process_hunk(hunk) for hunk in patch.hunks],
+        )
+        for patch in diff
+    ]
 
 
-def get_patch_lines(patch: pygit2.Patch) -> List[pygit2.DiffLine]:
+def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
     """
-    Returns all the lines in a patch.
+    Processes a hunk from a git diff into a HunkInfo object.
     """
+    return HunkInfo(
+        header=hunk.header,
+        lines=[
+            LineInfo(
+                old_line_number=line.old_lineno,
+                new_line_number=line.new_lineno,
+                line_type=line.origin,
+                line=line.content,
+            )
+            for line in hunk.lines
+        ],
+    )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Locust git utilities")
+    parser.add_argument("-r", "--repo", default=".", help="Path to git repository")
+
+    args = parser.parse_args()
+
+    repo = get_repository(args.repo)
+    patches = get_patches(repo)
+    print(json.dumps([asdict(patch) for patch in patches], indent=2))
