@@ -88,9 +88,23 @@ def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Locust git utilities")
     parser.add_argument("-r", "--repo", default=".", help="Path to git repository")
+    parser.add_argument(
+        "-i",
+        "--initial",
+        required=False,
+        default=None,
+        help="Reference to initial repository state",
+    )
+    parser.add_argument(
+        "-t",
+        "--terminal",
+        required=False,
+        default=None,
+        help="Reference to terminal repository state",
+    )
 
     args = parser.parse_args()
 
     repo = get_repository(args.repo)
-    patches = get_patches(repo)
+    patches = get_patches(repo, args.initial, args.terminal)
     print(json.dumps([asdict(patch) for patch in patches], indent=2))
