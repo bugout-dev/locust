@@ -1,5 +1,5 @@
 """
-git-related utilities
+git-related functionality
 """
 import argparse
 from dataclasses import asdict, dataclass
