@@ -88,7 +88,7 @@ class LocustVisitor(ast.NodeVisitor):
         self.definitions = []
         self.imports = {}
 
-    def parse(self, filepath: str) -> List[Tuple[str, str]]:
+    def parse(self, filepath: str) -> List[Tuple[str, str, int]]:
         abs_filepath = os.path.realpath(os.path.abspath(filepath))
         if (
             abs_filepath not in self.insertion_boundaries
@@ -107,7 +107,7 @@ class LocustVisitor(ast.NodeVisitor):
         self.reset()
         self.visit(root)
 
-        changed_definitions: List[Tuple[str, str]] = []
+        changed_definitions: List[Tuple[str, str, int]] = []
         for symbol, lineno, _, end_lineno, _ in self.definitions:
             possible_boundaries = [
                 boundary
@@ -122,11 +122,11 @@ class LocustVisitor(ast.NodeVisitor):
                 key=lambda p: p[0],
             )
             if candidate_insertion[1] >= lineno:
-                changed_definitions.append((symbol, f"{filepath}:{lineno}"))
+                changed_definitions.append((symbol, filepath, lineno))
         return changed_definitions
 
-    def parse_all(self) -> List[Tuple[str, str]]:
-        changed_definitions: List[Tuple[str, str]] = []
+    def parse_all(self) -> List[Tuple[str, str, int]]:
+        changed_definitions: List[Tuple[str, str, int]] = []
         for filepath in self.insertion_boundaries:
             changed_definitions.extend(self.parse(filepath))
         return changed_definitions
