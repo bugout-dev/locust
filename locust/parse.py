@@ -37,6 +37,10 @@ class LocustVisitor(ast.NodeVisitor):
     def __init__(self, patches: List[git.PatchInfo]):
         self.insertion_boundaries: Dict[str, List[Tuple[int, int]]] = {}
         for patch in patches:
+            _, extension = os.path.splitext(patch.new_file)
+            if extension != ".py":
+                continue
+            patch.new_file
             raw_insertion_boundaries = [
                 hunk_boundary(hunk, "+") for hunk in patch.hunks
             ]
@@ -93,7 +97,6 @@ class LocustVisitor(ast.NodeVisitor):
         insertion_boundaries = sorted(
             self.insertion_boundaries[abs_filepath], key=lambda p: p[0]
         )
-        print(f"File: {filepath}, boundaries: {insertion_boundaries}")
 
         with open(abs_filepath, "r") as ifp:
             source = ifp.read()
@@ -125,31 +128,3 @@ class LocustVisitor(ast.NodeVisitor):
         for filepath in self.insertion_boundaries:
             changed_definitions.extend(self.parse(filepath))
         return changed_definitions
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Run locust AST visitor over a given Python file and dump its state"
-    )
-    parser.add_argument("-r", "--repo", default=".", help="Path to git repository")
-    parser.add_argument(
-        "-i",
-        "--initial",
-        required=False,
-        default=None,
-        help="Reference to initial repository state",
-    )
-    parser.add_argument(
-        "-t",
-        "--terminal",
-        required=False,
-        default=None,
-        help="Reference to terminal repository state",
-    )
-
-    args = parser.parse_args()
-    repo = git.get_repository(args.repo)
-    patches = git.get_patches(repo, args.initial, args.terminal)
-    visitor = LocustVisitor(patches)
-    changed_definitions = visitor.parse_all()
-    print(changed_definitions)
