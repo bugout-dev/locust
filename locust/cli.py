@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
     repo = git.get_repository(args.repo)
     patches = git.get_patches(repo, args.initial, args.terminal)
-    visitor = parse.LocustVisitor(patches)
+    visitor = parse.LocustVisitor(args.repo, patches)
     changed_definitions = visitor.parse_all()
     with args.output as ofp:
         json.dump(changed_definitions, ofp)

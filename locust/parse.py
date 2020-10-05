@@ -34,17 +34,19 @@ def hunk_boundary(
 
 
 class LocustVisitor(ast.NodeVisitor):
-    def __init__(self, patches: List[git.PatchInfo]):
+    def __init__(self, repo_dir: str, patches: List[git.PatchInfo]):
+        self.repo_dir = repo_dir
+
         self.insertion_boundaries: Dict[str, List[Tuple[int, int]]] = {}
         for patch in patches:
             _, extension = os.path.splitext(patch.new_file)
             if extension != ".py":
                 continue
-            patch.new_file
+            patch_filepath = os.path.realpath(os.path.join(repo_dir, patch.new_file))
             raw_insertion_boundaries = [
                 hunk_boundary(hunk, "+") for hunk in patch.hunks
             ]
-            self.insertion_boundaries[os.path.abspath(patch.new_file)] = [
+            self.insertion_boundaries[os.path.abspath(patch_filepath)] = [
                 boundary
                 for boundary in raw_insertion_boundaries
                 if boundary is not None
@@ -87,7 +89,7 @@ class LocustVisitor(ast.NodeVisitor):
         self.imports = {}
 
     def parse(self, filepath: str) -> List[Tuple[str, str]]:
-        abs_filepath = os.path.abspath(filepath)
+        abs_filepath = os.path.realpath(os.path.abspath(filepath))
         if (
             abs_filepath not in self.insertion_boundaries
             or not self.insertion_boundaries[abs_filepath]
