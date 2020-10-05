@@ -3,6 +3,7 @@ The Locust CLI
 """
 import argparse
 import json
+import os
 import sys
 from typing import Any, Dict
 
@@ -53,6 +54,7 @@ def main():
     changed_definitions = visitor.parse_all()
 
     result: Dict[str, Any] = {
+        "repo_dir": os.path.realpath(args.repo),
         "current_ref": args.terminal,
         "changed_definitions": changed_definitions,
     }
