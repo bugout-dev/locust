@@ -58,6 +58,12 @@ class LocustVisitor(ast.NodeVisitor):
         self.scope: List[str] = []
         self.imports: Dict[str, str] = {}
 
+    # TODO(neeraj): The way imports are processed now, the code doesn't correctly handle things like
+    # conditional imports or overrides of imported symbols. It's hard to handle conditional imports
+    # correctly through static analysis - the conditions are usually determined by run time
+    # configuration. But at least for overrides, we can handle this by maintaining a stack of
+    # defined symbols with the paths that they originate from. A little complex for a proof of
+    # concept, but something to revisit when we want to make Locust more universal.
     def visit_Import(self, node: ast.Import) -> None:
         for name in node.names:
             as_name: Optional[str] = name.asname
