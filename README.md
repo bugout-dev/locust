@@ -1,5 +1,6 @@
 # locust
-Better navigate changes to Python code across git commits
+
+Track changes to Python source code across git refs.
 
 ## Dependencies
 
