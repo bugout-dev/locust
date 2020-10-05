@@ -93,6 +93,7 @@ class LocustVisitor(ast.NodeVisitor):
         insertion_boundaries = sorted(
             self.insertion_boundaries[abs_filepath], key=lambda p: p[0]
         )
+        print(f"File: {filepath}, boundaries: {insertion_boundaries}")
 
         with open(abs_filepath, "r") as ifp:
             source = ifp.read()
@@ -103,16 +104,26 @@ class LocustVisitor(ast.NodeVisitor):
 
         changed_definitions: List[Tuple[str, str]] = []
         for symbol, lineno, _, end_lineno, _ in self.definitions:
+            possible_boundaries = [
+                boundary
+                for boundary in insertion_boundaries
+                if end_lineno is None or boundary[0] <= end_lineno
+            ]
+            if not possible_boundaries:
+                continue
+
             candidate_insertion = max(
-                [
-                    boundary
-                    for boundary in insertion_boundaries
-                    if end_lineno is None or boundary[0] <= end_lineno
-                ],
+                possible_boundaries,
                 key=lambda p: p[0],
             )
             if candidate_insertion[1] >= lineno:
                 changed_definitions.append((symbol, f"{filepath}:{lineno}"))
+        return changed_definitions
+
+    def parse_all(self) -> List[Tuple[str, str]]:
+        changed_definitions: List[Tuple[str, str]] = []
+        for filepath in self.insertion_boundaries:
+            changed_definitions.extend(self.parse(filepath))
         return changed_definitions
 
 
@@ -135,11 +146,10 @@ if __name__ == "__main__":
         default=None,
         help="Reference to terminal repository state",
     )
-    parser.add_argument("python_file", help="File containing Python code")
 
     args = parser.parse_args()
     repo = git.get_repository(args.repo)
     patches = git.get_patches(repo, args.initial, args.terminal)
     visitor = LocustVisitor(patches)
-    changed_definitions = visitor.parse(args.python_file)
+    changed_definitions = visitor.parse_all()
     print(changed_definitions)
