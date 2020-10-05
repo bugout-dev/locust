@@ -4,6 +4,7 @@ The Locust CLI
 import argparse
 import json
 import sys
+from typing import Any, Dict
 
 from . import git
 from . import parse
@@ -45,12 +46,18 @@ def generate_argument_parser() -> argparse.ArgumentParser:
 def main():
     parser = generate_argument_parser()
     args = parser.parse_args()
+
     repo = git.get_repository(args.repo)
     patches = git.get_patches(repo, args.initial, args.terminal)
     visitor = parse.LocustVisitor(args.repo, patches)
     changed_definitions = visitor.parse_all()
+
+    result: Dict[str, Any] = {
+        "current_ref": args.terminal,
+        "changed_definitions": changed_definitions,
+    }
     with args.output as ofp:
-        json.dump(changed_definitions, ofp)
+        json.dump(result, ofp)
 
 
 if __name__ == "__main__":

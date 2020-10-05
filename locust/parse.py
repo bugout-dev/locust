@@ -34,7 +34,11 @@ def hunk_boundary(
 
 
 class LocustVisitor(ast.NodeVisitor):
-    def __init__(self, repo_dir: str, patches: List[git.PatchInfo]):
+    def __init__(
+        self,
+        repo_dir: str,
+        patches: List[git.PatchInfo],
+    ):
         self.repo_dir = repo_dir
 
         self.insertion_boundaries: Dict[str, List[Tuple[int, int]]] = {}
