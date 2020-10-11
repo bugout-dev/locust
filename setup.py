@@ -18,7 +18,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Neeraj Kashyap",
-    author_email="neeraj@simiotics.com",
+    author_email="neeraj@bugout.dev",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Programming Language :: Python",

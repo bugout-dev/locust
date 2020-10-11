@@ -2,6 +2,7 @@
 The Locust CLI
 """
 import argparse
+from dataclasses import asdict
 import json
 import os
 import sys
@@ -59,7 +60,9 @@ def main():
     result: Dict[str, Any] = {
         "repo_dir": os.path.realpath(args.repo),
         "current_ref": args.terminal,
-        "changed_definitions": changed_definitions,
+        "changed_definitions": [
+            asdict(changed_def) for changed_def in changed_definitions
+        ],
     }
 
     indent: Optional[int] = None

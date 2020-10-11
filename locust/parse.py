@@ -3,6 +3,7 @@ AST-related functionality
 """
 import argparse
 import ast
+from dataclasses import dataclass
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -33,7 +34,30 @@ def hunk_boundary(
     return (admissible_lines[0].new_line_number, admissible_lines[-1].new_line_number)
 
 
+@dataclass
+class Definition:
+    name: str
+    definition_type: str
+    line: int
+    offset: int
+    end_line: Optional[int] = None
+    end_offset: Optional[int] = None
+
+
+@dataclass
+class ChangedDefinition:
+    name: str
+    definition_type: str
+    filepath: str
+    revision: Optional[str]
+    line: int
+
+
 class LocustVisitor(ast.NodeVisitor):
+    FUNCTION_DEF = "function"
+    ASYNC_FUNCTION_DEF = "async_function"
+    CLASS_DEF = "class"
+
     def __init__(
         self,
         repo_dir: str,
@@ -57,19 +81,22 @@ class LocustVisitor(ast.NodeVisitor):
             ]
 
         self.scope: List[Tuple[str, int, Optional[int]]] = []
-        self.definitions: List[Tuple[str, int, int, Optional[int], Optional[int]]] = []
+        self.definitions: List[Definition] = []
         self.imports: Dict[str, str] = {}
 
     def _visit_class_or_function_def(
-        self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef]
+        self,
+        node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
+        def_type: str,
     ) -> None:
         self.scope = [
             spec for spec in self.scope if spec[2] is not None and spec[2] > node.lineno
         ]
         self.scope.append((node.name, node.lineno, node.end_lineno))
         self.definitions.append(
-            (
+            Definition(
                 ".".join([spec[0] for spec in self.scope]),
+                def_type,
                 node.lineno,
                 node.col_offset,
                 node.end_lineno,
@@ -79,20 +106,20 @@ class LocustVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._visit_class_or_function_def(node)
+        self._visit_class_or_function_def(node, self.FUNCTION_DEF)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._visit_class_or_function_def(node)
+        self._visit_class_or_function_def(node, self.ASYNC_FUNCTION_DEF)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self._visit_class_or_function_def(node)
+        self._visit_class_or_function_def(node, self.CLASS_DEF)
 
     def reset(self):
         self.scope = []
         self.definitions = []
         self.imports = {}
 
-    def parse(self, filepath: str) -> List[Tuple[str, str, int]]:
+    def parse(self, filepath: str) -> List[ChangedDefinition]:
         abs_filepath = os.path.realpath(os.path.abspath(filepath))
         if (
             abs_filepath not in self.insertion_boundaries
@@ -111,12 +138,12 @@ class LocustVisitor(ast.NodeVisitor):
         self.reset()
         self.visit(root)
 
-        changed_definitions: List[Tuple[str, str, int]] = []
-        for symbol, lineno, _, end_lineno, _ in self.definitions:
+        changed_definitions: List[ChangedDefinition] = []
+        for definition in self.definitions:
             possible_boundaries = [
                 boundary
                 for boundary in insertion_boundaries
-                if end_lineno is None or boundary[0] <= end_lineno
+                if definition.end_line is None or boundary[0] <= definition.end_line
             ]
             if not possible_boundaries:
                 continue
@@ -125,12 +152,21 @@ class LocustVisitor(ast.NodeVisitor):
                 possible_boundaries,
                 key=lambda p: p[0],
             )
-            if candidate_insertion[1] >= lineno:
-                changed_definitions.append((symbol, filepath, lineno))
+            if candidate_insertion[1] >= definition.line:
+                changed_definitions.append(
+                    ChangedDefinition(
+                        definition.name,
+                        definition.definition_type,
+                        filepath,
+                        None,
+                        definition.line,
+                    )
+                )
+
         return changed_definitions
 
-    def parse_all(self) -> List[Tuple[str, str, int]]:
-        changed_definitions: List[Tuple[str, str, int]] = []
+    def parse_all(self) -> List[ChangedDefinition]:
+        changed_definitions: List[ChangedDefinition] = []
         for filepath in self.insertion_boundaries:
             changed_definitions.extend(self.parse(filepath))
         return changed_definitions
