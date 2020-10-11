@@ -42,6 +42,7 @@ class Definition:
     offset: int
     end_line: Optional[int] = None
     end_offset: Optional[int] = None
+    parent: Optional[str] = None
 
 
 @dataclass
@@ -51,6 +52,7 @@ class ChangedDefinition:
     filepath: str
     revision: Optional[str]
     line: int
+    parent: Optional[str] = None
 
 
 class LocustVisitor(ast.NodeVisitor):
@@ -93,6 +95,9 @@ class LocustVisitor(ast.NodeVisitor):
             spec for spec in self.scope if spec[2] is not None and spec[2] > node.lineno
         ]
         self.scope.append((node.name, node.lineno, node.end_lineno))
+        parent: Optional[str] = None
+        if len(self.scope) > 1:
+            parent = ".".join([spec[0] for spec in self.scope[:-1]])
         self.definitions.append(
             Definition(
                 ".".join([spec[0] for spec in self.scope]),
@@ -101,6 +106,7 @@ class LocustVisitor(ast.NodeVisitor):
                 node.col_offset,
                 node.end_lineno,
                 node.end_col_offset,
+                parent,
             )
         )
         self.generic_visit(node)
@@ -160,6 +166,7 @@ class LocustVisitor(ast.NodeVisitor):
                         filepath,
                         None,
                         definition.line,
+                        definition.parent,
                     )
                 )
 

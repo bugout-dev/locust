@@ -10,11 +10,13 @@ from typing import Any, Dict, Optional
 
 from . import git
 from . import parse
+from . import version
 
 
 def generate_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Locust: Analyze Python code across git references"
+        description="Locust: Analyze Python code across git references",
+        epilog=f"Version {version.LOCUST_VERSION}",
     )
     parser.add_argument(
         "-r", "--repo", required=False, default=".", help="Path to git repository"
