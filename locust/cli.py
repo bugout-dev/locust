@@ -5,7 +5,7 @@ import argparse
 import json
 import os
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from . import git
 from . import parse
@@ -19,18 +19,16 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         "-r", "--repo", required=False, default=".", help="Path to git repository"
     )
     parser.add_argument(
-        "-i",
-        "--initial",
-        required=False,
+        "initial",
+        nargs="?",
         default=None,
-        help="Initial git reference",
+        help="Initial git revision",
     )
     parser.add_argument(
-        "-t",
-        "--terminal",
-        required=False,
+        "terminal",
+        nargs="?",
         default=None,
-        help="Terminal git reference",
+        help="Terminal git revision",
     )
     parser.add_argument(
         "-o",
@@ -39,6 +37,11 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         type=argparse.FileType("w"),
         default=sys.stdout,
         help="Path to which to write results (as JSON)",
+    )
+    parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Specifies that result should be pretty printed",
     )
 
     return parser
@@ -58,8 +61,13 @@ def main():
         "current_ref": args.terminal,
         "changed_definitions": changed_definitions,
     }
+
+    indent: Optional[int] = None
+    if args.pretty:
+        indent = 4
+
     with args.output as ofp:
-        json.dump(result, ofp)
+        print(json.dumps(result, indent=indent), file=ofp)
 
 
 if __name__ == "__main__":
