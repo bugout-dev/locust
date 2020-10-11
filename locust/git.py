@@ -89,18 +89,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Locust git utilities")
     parser.add_argument("-r", "--repo", default=".", help="Path to git repository")
     parser.add_argument(
-        "-i",
-        "--initial",
-        required=False,
+        "initial",
+        nargs="?",
         default=None,
-        help="Reference to initial repository state",
+        help="Initial revision",
     )
     parser.add_argument(
-        "-t",
-        "--terminal",
-        required=False,
+        "terminal",
+        nargs="?",
         default=None,
-        help="Reference to terminal repository state",
+        help="Terminal revision",
     )
 
     args = parser.parse_args()
