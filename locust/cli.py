@@ -61,7 +61,6 @@ def main():
 
     result: Dict[str, Any] = {
         "repository": os.path.realpath(args.repo),
-        "revision": args.terminal,
         "changed_definitions": [
             asdict(changed_def) for changed_def in changed_definitions
         ],

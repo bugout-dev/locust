@@ -120,23 +120,3 @@ def revision_file(
         content = current_tree.data
 
     return content
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Locust git utilities")
-    parser.add_argument("-r", "--repo", default=".", help="Path to git repository")
-    parser.add_argument(
-        "filepath",
-        help="File path",
-    )
-    parser.add_argument(
-        "revision",
-        nargs="?",
-        default=None,
-        help="Revision",
-    )
-
-    args = parser.parse_args()
-
-    repo = get_repository(args.repo)
-    print(revision_file(repo, args.revision, os.path.abspath(args.filepath)))
