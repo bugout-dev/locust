@@ -105,4 +105,4 @@ if __name__ == "__main__":
 
     repo = get_repository(args.repo)
     patches = get_patches(repo, args.initial, args.terminal)
-    print(json.dumps([asdict(patch) for patch in patches], indent=2))
+    print(json.dumps([asdict(patch) for patch in patches], indent=4))
