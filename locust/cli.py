@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 
 from . import git
 from . import parse
+from . import render
 from . import version
 
 
@@ -59,12 +60,7 @@ def main():
     visitor = parse.LocustVisitor(repo, args.terminal, patches)
     changed_definitions = visitor.parse_all()
 
-    result: Dict[str, Any] = {
-        "repository": os.path.realpath(args.repo),
-        "changed_definitions": [
-            asdict(changed_def) for changed_def in changed_definitions
-        ],
-    }
+    result = render.render_json(changed_definitions)
 
     indent: Optional[int] = None
     if args.pretty:
