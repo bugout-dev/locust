@@ -37,7 +37,7 @@ def hunk_boundary(
 
 
 @dataclass
-class Definition:
+class RawDefinition:
     name: str
     definition_type: str
     line: int
@@ -48,7 +48,7 @@ class Definition:
 
 
 @dataclass
-class ChangedDefinition:
+class LocustDefinition:
     name: str
     definition_type: str
     filepath: str
@@ -91,7 +91,7 @@ class LocustVisitor(ast.NodeVisitor):
             ]
 
         self.scope: List[Tuple[str, int, Optional[int]]] = []
-        self.definitions: List[Definition] = []
+        self.definitions: List[RawDefinition] = []
         self.imports: Dict[str, str] = {}
 
     def _visit_class_or_function_def(
@@ -110,7 +110,7 @@ class LocustVisitor(ast.NodeVisitor):
                 self.scope[-2][1],
             )
         self.definitions.append(
-            Definition(
+            RawDefinition(
                 ".".join([spec[0] for spec in self.scope]),
                 def_type,
                 node.lineno,
@@ -136,7 +136,7 @@ class LocustVisitor(ast.NodeVisitor):
         self.definitions = []
         self.imports = {}
 
-    def parse(self, filepath: str) -> List[ChangedDefinition]:
+    def parse(self, filepath: str) -> List[LocustDefinition]:
         abs_filepath = os.path.realpath(os.path.abspath(filepath))
         if (
             abs_filepath not in self.insertion_boundaries
@@ -155,7 +155,7 @@ class LocustVisitor(ast.NodeVisitor):
         self.reset()
         self.visit(root)
 
-        changed_definitions: List[ChangedDefinition] = []
+        changed_definitions: List[LocustDefinition] = []
         for definition in self.definitions:
             possible_boundaries = [
                 boundary
@@ -171,7 +171,7 @@ class LocustVisitor(ast.NodeVisitor):
             )
             if candidate_insertion[1] >= definition.line:
                 changed_definitions.append(
-                    ChangedDefinition(
+                    LocustDefinition(
                         definition.name,
                         definition.definition_type,
                         filepath,
@@ -183,8 +183,8 @@ class LocustVisitor(ast.NodeVisitor):
 
         return changed_definitions
 
-    def parse_all(self) -> List[ChangedDefinition]:
-        changed_definitions: List[ChangedDefinition] = []
+    def parse_all(self) -> List[LocustDefinition]:
+        changed_definitions: List[LocustDefinition] = []
         for filepath in self.insertion_boundaries:
             changed_definitions.extend(self.parse(filepath))
         return changed_definitions

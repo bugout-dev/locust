@@ -90,7 +90,8 @@ def revision_file(
     repository: pygit2.Repository, revision: Optional[str], filepath: str
 ) -> bytes:
     """
-    Returns the bytes from the file at the given filepath on the given revision.
+    Returns the bytes from the file at the given filepath on the given revision. If revision is
+    None, returns the bytes from the filepath in the current working tree.
 
     Filepath is expected to be an absolute, normalized path.
     """
