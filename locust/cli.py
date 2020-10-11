@@ -56,12 +56,12 @@ def main():
 
     repo = git.get_repository(args.repo)
     patches = git.get_patches(repo, args.initial, args.terminal)
-    visitor = parse.LocustVisitor(args.repo, patches)
+    visitor = parse.LocustVisitor(repo, args.terminal, patches)
     changed_definitions = visitor.parse_all()
 
     result: Dict[str, Any] = {
-        "repo_dir": os.path.realpath(args.repo),
-        "current_ref": args.terminal,
+        "repository": os.path.realpath(args.repo),
+        "revision": args.terminal,
         "changed_definitions": [
             asdict(changed_def) for changed_def in changed_definitions
         ],

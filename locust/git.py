@@ -4,6 +4,7 @@ git-related functionality
 import argparse
 from dataclasses import asdict, dataclass
 import json
+import os
 from typing import Any, List, Optional, Tuple
 
 import pygit2
@@ -85,24 +86,57 @@ def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
     )
 
 
+def revision_file(
+    repository: pygit2.Repository, revision: Optional[str], filepath: str
+) -> bytes:
+    """
+    Returns the bytes from the file at the given filepath on the given revision.
+
+    Filepath is expected to be an absolute, normalized path.
+    """
+    repo_path = os.path.normpath(repository.workdir)
+
+    content = bytes()
+
+    if revision is None:
+        assert (
+            os.path.commonpath([repo_path, filepath]) == repo_path
+        ), f"File ({filepath}) is not contained in repository ({repo_path})"
+        with open(filepath, "rb") as ifp:
+            content = ifp.read()
+    else:
+        relative_path = os.path.relpath(filepath, repo_path)
+        dirname, basename = os.path.split(relative_path)
+        components: List[str] = [basename]
+        while dirname:
+            dirname, basename = os.path.split(dirname)
+            components.append(basename)
+        components.reverse()
+
+        commit = repository.revparse_single(revision)
+        current_tree = commit.tree
+        for component in components:
+            current_tree = current_tree[component]
+        content = current_tree.data
+
+    return content
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Locust git utilities")
     parser.add_argument("-r", "--repo", default=".", help="Path to git repository")
     parser.add_argument(
-        "initial",
-        nargs="?",
-        default=None,
-        help="Initial revision",
+        "filepath",
+        help="File path",
     )
     parser.add_argument(
-        "terminal",
+        "revision",
         nargs="?",
         default=None,
-        help="Terminal revision",
+        help="Revision",
     )
 
     args = parser.parse_args()
 
     repo = get_repository(args.repo)
-    patches = get_patches(repo, args.initial, args.terminal)
-    print(json.dumps([asdict(patch) for patch in patches], indent=4))
+    print(revision_file(repo, args.revision, os.path.abspath(args.filepath)))

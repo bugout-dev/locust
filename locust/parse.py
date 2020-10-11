@@ -7,6 +7,8 @@ from dataclasses import dataclass
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from pygit2 import Repository
+
 from . import git
 
 
@@ -62,17 +64,23 @@ class LocustVisitor(ast.NodeVisitor):
 
     def __init__(
         self,
-        repo_dir: str,
+        repository: Repository,
+        revision: Optional[str],
         patches: List[git.PatchInfo],
     ):
-        self.repo_dir = repo_dir
+        self.repository = repository
+        self.revision = None
+        if revision is not None:
+            self.revision = repository.revparse_single(revision).short_id
 
         self.insertion_boundaries: Dict[str, List[Tuple[int, int]]] = {}
         for patch in patches:
             _, extension = os.path.splitext(patch.new_file)
             if extension != ".py":
                 continue
-            patch_filepath = os.path.realpath(os.path.join(repo_dir, patch.new_file))
+            patch_filepath = os.path.realpath(
+                os.path.join(repository.workdir, patch.new_file)
+            )
             raw_insertion_boundaries = [
                 hunk_boundary(hunk, "+") for hunk in patch.hunks
             ]
@@ -140,8 +148,8 @@ class LocustVisitor(ast.NodeVisitor):
             self.insertion_boundaries[abs_filepath], key=lambda p: p[0]
         )
 
-        with open(abs_filepath, "r") as ifp:
-            source = ifp.read()
+        source_bytes = git.revision_file(self.repository, self.revision, filepath)
+        source = source_bytes.decode()
 
         root = ast.parse(source)
         self.reset()
@@ -167,7 +175,7 @@ class LocustVisitor(ast.NodeVisitor):
                         definition.name,
                         definition.definition_type,
                         filepath,
-                        None,
+                        self.revision,
                         definition.line,
                         definition.parent,
                     )
