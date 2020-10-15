@@ -5,6 +5,7 @@ import copy
 from dataclasses import asdict, dataclass
 import json
 import os
+import textwrap
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from . import parse
@@ -111,11 +112,45 @@ def render_json(changes: Dict[str, List[NestedChange]]) -> str:
     return json.dumps(result)
 
 
-def render_markdown(changes: Dict[str, List[NestedChange]], level: int = 2) -> str:
-    pass
+def nested_change_to_yaml(nested_change: NestedChange) -> str:
+    base_info = textwrap.dedent(
+        f"""
+            name: {nested_change.change.name}
+            change_type: {nested_change.change.change_type}
+            line: {nested_change.change.line}
+            changed_lines: {nested_change.change.changed_lines}
+            total_lines: {nested_change.change.total_lines}
+        """
+    )
+
+    children_info = [nested_change_to_yaml(child) for child in nested_change.children]
+    for info_string in children_info:
+        lines = [line for line in info_string.split("\n") if line != ""]
+        raw_child_str = f"- {lines[0]}\n" + "\n".join(
+            [f"  {line}" for line in lines[1:]]
+        )
+        base_info += f"\n{raw_child_str}"
+
+    return base_info
+
+
+def render_yaml(changes: Dict[str, List[NestedChange]]) -> str:
+    result = "locust:"
+    for filepath, nested_changes in changes.items():
+        result += f"\n\n- file: {filepath}\n  changes:"
+        for nested_change in nested_changes:
+            change_lines = [
+                line
+                for line in nested_change_to_yaml(nested_change).split("\n")
+                if line != ""
+            ]
+            result += f"\n\n  - {change_lines[0]}"
+            for line in change_lines[1:]:
+                result += f"\n    {line}"
+    return result
 
 
 renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {
     "json": render_json,
-    "markdown": render_markdown,
+    "yaml": render_yaml,
 }

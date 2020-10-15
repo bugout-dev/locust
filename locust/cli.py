@@ -66,7 +66,8 @@ def main():
     ]
 
     nested_results = render.nest_results(normalized_changes)
-    results = render.render_json(nested_results)
+    renderer = render.renderers[args.format]
+    results = renderer(nested_results)
 
     with args.output as ofp:
         print(results, file=ofp)
