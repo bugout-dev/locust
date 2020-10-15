@@ -59,8 +59,12 @@ def main():
     patches = git.get_patches(repo, args.initial, args.terminal)
     visitor = parse.LocustVisitor(repo, args.terminal, patches)
     changed_definitions = visitor.parse_all()
+    normalized_definitions = [
+        render.repo_relative_filepath(args.repo, definition)
+        for definition in changed_definitions
+    ]
 
-    result = render.render_json(changed_definitions)
+    result = render.render_json(normalized_definitions)
 
     indent: Optional[int] = None
     if args.pretty:

@@ -3,6 +3,7 @@ Rendering utilities for locust parse results.
 """
 import copy
 from dataclasses import asdict, dataclass
+import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from . import parse
@@ -51,6 +52,17 @@ def nest_results(definitions: List[parse.LocustDefinition]) -> List[NestedDefini
         )
 
     return nested_results
+
+
+def repo_relative_filepath(
+    repo_dir: str, definition: parse.LocustDefinition
+) -> parse.LocustDefinition:
+    """
+    Changes the filepath on a LocustDefinition so that it is relative to the repo directory.
+    """
+    updated_definition = copy.copy(definition)
+    updated_definition.filepath = os.path.relpath(definition.filepath, start=repo_dir)
+    return updated_definition
 
 
 def render_json(
