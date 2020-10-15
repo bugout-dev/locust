@@ -12,17 +12,17 @@ IndexKey = Tuple[str, Optional[str], str, int]
 
 
 @dataclass
-class NestedDefinition:
+class NestedChange:
     key: IndexKey
-    definition: parse.LocustDefinition
+    definition: parse.LocustChange
     children: Any
 
 
-def get_key(definition: parse.LocustDefinition) -> IndexKey:
+def get_key(definition: parse.LocustChange) -> IndexKey:
     return (definition.filepath, definition.revision, definition.name, definition.line)
 
 
-def parent_key(definition: parse.LocustDefinition) -> Optional[IndexKey]:
+def parent_key(definition: parse.LocustChange) -> Optional[IndexKey]:
     if definition.parent is None:
         return None
     return (
@@ -34,10 +34,10 @@ def parent_key(definition: parse.LocustDefinition) -> Optional[IndexKey]:
 
 
 def nest_results(
-    definitions: List[parse.LocustDefinition],
-) -> Dict[str, List[NestedDefinition]]:
-    results: Dict[str, List[NestedDefinition]] = {}
-    index: Dict[IndexKey, parse.LocustDefinition] = {
+    definitions: List[parse.LocustChange],
+) -> Dict[str, List[NestedChange]]:
+    results: Dict[str, List[NestedChange]] = {}
+    index: Dict[IndexKey, parse.LocustChange] = {
         get_key(definition): definition for definition in definitions
     }
 
@@ -48,7 +48,7 @@ def nest_results(
         if definition_parent:
             children[definition_parent].append(get_key(definition))
 
-    nested_results: Dict[str, List[NestedDefinition]] = {}
+    nested_results: Dict[str, List[NestedChange]] = {}
     keys_to_process = sorted(
         [k for k in index], key=lambda k: len(children[k]), reverse=True
     )
@@ -56,10 +56,10 @@ def nest_results(
 
     def process_definition(
         definition_key: IndexKey, visited: Set[IndexKey]
-    ) -> NestedDefinition:
+    ) -> NestedChange:
         visited.add(definition_key)
         if not children[definition_key]:
-            return NestedDefinition(
+            return NestedChange(
                 key=definition_key, definition=index[definition_key], children=[]
             )
 
@@ -67,7 +67,7 @@ def nest_results(
             process_definition(child_key, visited)
             for child_key in children[definition_key]
         ]
-        return NestedDefinition(
+        return NestedChange(
             key=definition_key,
             definition=index[definition_key],
             children=definition_children,
@@ -88,17 +88,17 @@ def nest_results(
 
 
 def repo_relative_filepath(
-    repo_dir: str, definition: parse.LocustDefinition
-) -> parse.LocustDefinition:
+    repo_dir: str, definition: parse.LocustChange
+) -> parse.LocustChange:
     """
-    Changes the filepath on a LocustDefinition so that it is relative to the repo directory.
+    Changes the filepath on a LocustChange so that it is relative to the repo directory.
     """
     updated_definition = copy.copy(definition)
     updated_definition.filepath = os.path.relpath(definition.filepath, start=repo_dir)
     return updated_definition
 
 
-def nested_definition_to_json(definition: NestedDefinition) -> Dict[str, Any]:
+def nested_definition_to_json(definition: NestedChange) -> Dict[str, Any]:
     children_list: List[Dict[str, Any]] = []
     if definition.children:
         children_list = [
@@ -108,7 +108,7 @@ def nested_definition_to_json(definition: NestedDefinition) -> Dict[str, Any]:
     return json_form
 
 
-def render_json(definitions: Dict[str, List[NestedDefinition]]) -> Dict[str, Any]:
+def render_json(definitions: Dict[str, List[NestedChange]]) -> Dict[str, Any]:
     result = {
         filepath: [
             nested_definition_to_json(definition) for definition in nested_definitions
