@@ -64,14 +64,15 @@ def main():
         for definition in changed_definitions
     ]
 
-    result = render.render_json(normalized_definitions)
+    nested_results = render.nest_results(normalized_definitions)
+    json_results = render.render_json(nested_results)
 
     indent: Optional[int] = None
     if args.pretty:
         indent = 4
 
     with args.output as ofp:
-        print(json.dumps(result, indent=indent), file=ofp)
+        print(json.dumps(json_results, indent=indent), file=ofp)
 
 
 if __name__ == "__main__":
