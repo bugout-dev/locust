@@ -43,9 +43,11 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         help="Path to which to write results (as JSON)",
     )
     parser.add_argument(
-        "--pretty",
-        action="store_true",
-        help="Specifies that result should be pretty printed",
+        "-f",
+        "--format",
+        choices=render.renderers,
+        default="json",
+        help="Format in which to render results",
     )
 
     return parser
@@ -64,14 +66,10 @@ def main():
     ]
 
     nested_results = render.nest_results(normalized_changes)
-    json_results = render.render_json(nested_results)
-
-    indent: Optional[int] = None
-    if args.pretty:
-        indent = 4
+    results = render.render_json(nested_results)
 
     with args.output as ofp:
-        print(json.dumps(json_results, indent=indent), file=ofp)
+        print(results, file=ofp)
 
 
 if __name__ == "__main__":

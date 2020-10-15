@@ -3,8 +3,9 @@ Rendering utilities for locust parse results.
 """
 import copy
 from dataclasses import asdict, dataclass
+import json
 import os
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from . import parse
 
@@ -101,10 +102,20 @@ def nested_change_to_json(change: NestedChange) -> Dict[str, Any]:
     return json_form
 
 
-def render_json(changes: Dict[str, List[NestedChange]]) -> Dict[str, Any]:
+def render_json(changes: Dict[str, List[NestedChange]]) -> str:
     result = {
         filepath: [nested_change_to_json(change) for change in nested_changes]
         for filepath, nested_changes in changes.items()
     }
 
-    return result
+    return json.dumps(result)
+
+
+def render_markdown(changes: Dict[str, List[NestedChange]], level: int = 2) -> str:
+    pass
+
+
+renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {
+    "json": render_json,
+    "markdown": render_markdown,
+}
