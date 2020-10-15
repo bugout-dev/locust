@@ -14,39 +14,39 @@ IndexKey = Tuple[str, Optional[str], str, int]
 @dataclass
 class NestedChange:
     key: IndexKey
-    definition: parse.LocustChange
+    change: parse.LocustChange
     children: Any
 
 
-def get_key(definition: parse.LocustChange) -> IndexKey:
-    return (definition.filepath, definition.revision, definition.name, definition.line)
+def get_key(change: parse.LocustChange) -> IndexKey:
+    return (change.filepath, change.revision, change.name, change.line)
 
 
-def parent_key(definition: parse.LocustChange) -> Optional[IndexKey]:
-    if definition.parent is None:
+def parent_key(change: parse.LocustChange) -> Optional[IndexKey]:
+    if change.parent is None:
         return None
     return (
-        definition.filepath,
-        definition.revision,
-        definition.parent[0],
-        definition.parent[1],
+        change.filepath,
+        change.revision,
+        change.parent[0],
+        change.parent[1],
     )
 
 
 def nest_results(
-    definitions: List[parse.LocustChange],
+    changes: List[parse.LocustChange],
 ) -> Dict[str, List[NestedChange]]:
     results: Dict[str, List[NestedChange]] = {}
     index: Dict[IndexKey, parse.LocustChange] = {
-        get_key(definition): definition for definition in definitions
+        get_key(change): change for change in changes
     }
 
     children: Dict[IndexKey, List[IndexKey]] = {key: [] for key in index}
 
-    for definition in definitions:
-        definition_parent = parent_key(definition)
-        if definition_parent:
-            children[definition_parent].append(get_key(definition))
+    for change in changes:
+        change_parent = parent_key(change)
+        if change_parent:
+            children[change_parent].append(get_key(change))
 
     nested_results: Dict[str, List[NestedChange]] = {}
     keys_to_process = sorted(
@@ -54,66 +54,57 @@ def nest_results(
     )
     visited_keys: Set[IndexKey] = set()
 
-    def process_definition(
-        definition_key: IndexKey, visited: Set[IndexKey]
-    ) -> NestedChange:
-        visited.add(definition_key)
-        if not children[definition_key]:
-            return NestedChange(
-                key=definition_key, definition=index[definition_key], children=[]
-            )
+    def process_change(change_key: IndexKey, visited: Set[IndexKey]) -> NestedChange:
+        visited.add(change_key)
+        if not children[change_key]:
+            return NestedChange(key=change_key, change=index[change_key], children=[])
 
-        definition_children = [
-            process_definition(child_key, visited)
-            for child_key in children[definition_key]
+        change_children = [
+            process_change(child_key, visited) for child_key in children[change_key]
         ]
         return NestedChange(
-            key=definition_key,
-            definition=index[definition_key],
-            children=definition_children,
+            key=change_key,
+            change=index[change_key],
+            children=change_children,
         )
 
     for key in keys_to_process:
         if key in visited_keys:
             continue
-        definition = index[key]
-        if definition.filepath not in results:
-            results[definition.filepath] = []
+        change = index[key]
+        if change.filepath not in results:
+            results[change.filepath] = []
 
-        nested_definition = process_definition(key, visited_keys)
+        nested_change = process_change(key, visited_keys)
 
-        results[definition.filepath].append(nested_definition)
+        results[change.filepath].append(nested_change)
 
     return results
 
 
 def repo_relative_filepath(
-    repo_dir: str, definition: parse.LocustChange
+    repo_dir: str, change: parse.LocustChange
 ) -> parse.LocustChange:
     """
     Changes the filepath on a LocustChange so that it is relative to the repo directory.
     """
-    updated_definition = copy.copy(definition)
-    updated_definition.filepath = os.path.relpath(definition.filepath, start=repo_dir)
-    return updated_definition
+    updated_change = copy.copy(change)
+    updated_change.filepath = os.path.relpath(change.filepath, start=repo_dir)
+    return updated_change
 
 
-def nested_definition_to_json(definition: NestedChange) -> Dict[str, Any]:
+def nested_change_to_json(change: NestedChange) -> Dict[str, Any]:
     children_list: List[Dict[str, Any]] = []
-    if definition.children:
-        children_list = [
-            nested_definition_to_json(child) for child in definition.children
-        ]
-    json_form = {"definition": asdict(definition), "children": children_list}
+    if change.children:
+        children_list = [nested_change_to_json(child) for child in change.children]
+    json_form = {"change": asdict(change), "children": children_list}
     return json_form
 
 
-def render_json(definitions: Dict[str, List[NestedChange]]) -> Dict[str, Any]:
+def render_json(changes: Dict[str, List[NestedChange]]) -> Dict[str, Any]:
     result = {
-        filepath: [
-            nested_definition_to_json(definition) for definition in nested_definitions
-        ]
-        for filepath, nested_definitions in definitions.items()
+        filepath: [nested_change_to_json(change) for change in nested_changes]
+        for filepath, nested_changes in changes.items()
     }
 
     return result

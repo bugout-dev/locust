@@ -58,13 +58,12 @@ def main():
     repo = git.get_repository(args.repo)
     patches = git.get_patches(repo, args.initial, args.terminal)
     visitor = parse.LocustVisitor(repo, args.terminal, patches)
-    changed_definitions = visitor.parse_all()
-    normalized_definitions = [
-        render.repo_relative_filepath(args.repo, definition)
-        for definition in changed_definitions
+    changes = visitor.parse_all()
+    normalized_changes = [
+        render.repo_relative_filepath(args.repo, change) for change in changes
     ]
 
-    nested_results = render.nest_results(normalized_definitions)
+    nested_results = render.nest_results(normalized_changes)
     json_results = render.render_json(nested_results)
 
     indent: Optional[int] = None

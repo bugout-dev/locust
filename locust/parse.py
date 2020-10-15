@@ -39,7 +39,7 @@ def hunk_boundary(
 @dataclass
 class RawChange:
     name: str
-    definition_type: str
+    change_type: str
     line: int
     offset: int
     end_line: Optional[int] = None
@@ -50,7 +50,7 @@ class RawChange:
 @dataclass
 class LocustChange:
     name: str
-    definition_type: str
+    change_type: str
     filepath: str
     revision: Optional[str]
     line: int
@@ -91,7 +91,7 @@ class LocustVisitor(ast.NodeVisitor):
             ]
 
         self.scope: List[Tuple[str, int, Optional[int]]] = []
-        self.definitions: List[RawChange] = []
+        self.changes: List[RawChange] = []
         self.imports: Dict[str, str] = {}
 
     def _visit_class_or_function_def(
@@ -109,7 +109,7 @@ class LocustVisitor(ast.NodeVisitor):
                 ".".join([spec[0] for spec in self.scope[:-1]]),
                 self.scope[-2][1],
             )
-        self.definitions.append(
+        self.changes.append(
             RawChange(
                 ".".join([spec[0] for spec in self.scope]),
                 def_type,
@@ -133,7 +133,7 @@ class LocustVisitor(ast.NodeVisitor):
 
     def reset(self):
         self.scope = []
-        self.definitions = []
+        self.changes = []
         self.imports = {}
 
     def parse(self, filepath: str) -> List[LocustChange]:
@@ -155,12 +155,12 @@ class LocustVisitor(ast.NodeVisitor):
         self.reset()
         self.visit(root)
 
-        changed_definitions: List[LocustChange] = []
-        for definition in self.definitions:
+        changed_changes: List[LocustChange] = []
+        for change in self.changes:
             possible_boundaries = [
                 boundary
                 for boundary in insertion_boundaries
-                if definition.end_line is None or boundary[0] <= definition.end_line
+                if change.end_line is None or boundary[0] <= change.end_line
             ]
             if not possible_boundaries:
                 continue
@@ -169,22 +169,22 @@ class LocustVisitor(ast.NodeVisitor):
                 possible_boundaries,
                 key=lambda p: p[0],
             )
-            if candidate_insertion[1] >= definition.line:
-                changed_definitions.append(
+            if candidate_insertion[1] >= change.line:
+                changed_changes.append(
                     LocustChange(
-                        definition.name,
-                        definition.definition_type,
+                        change.name,
+                        change.change_type,
                         filepath,
                         self.revision,
-                        definition.line,
-                        definition.parent,
+                        change.line,
+                        change.parent,
                     )
                 )
 
-        return changed_definitions
+        return changed_changes
 
     def parse_all(self) -> List[LocustChange]:
-        changed_definitions: List[LocustChange] = []
+        changed_changes: List[LocustChange] = []
         for filepath in self.insertion_boundaries:
-            changed_definitions.extend(self.parse(filepath))
-        return changed_definitions
+            changed_changes.extend(self.parse(filepath))
+        return changed_changes
