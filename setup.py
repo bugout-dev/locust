@@ -12,6 +12,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "pygit2",
+        "PyYAML",
     ],
     extras_require={"dev": ["black", "mypy"]},
     description="Locust: Track changes to Python code across git refs",

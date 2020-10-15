@@ -8,6 +8,8 @@ import os
 import textwrap
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
+import yaml
+
 from . import parse
 
 IndexKey = Tuple[str, Optional[str], str, int]
@@ -95,59 +97,49 @@ def repo_relative_filepath(
     return updated_change
 
 
-def nested_change_to_json(change: NestedChange) -> Dict[str, Any]:
-    children_list: List[Dict[str, Any]] = []
-    if change.children:
-        children_list = [nested_change_to_json(child) for child in change.children]
-    json_form = {"change": asdict(change), "children": children_list}
-    return json_form
-
-
-def render_json(changes: Dict[str, List[NestedChange]]) -> str:
+def nested_change_to_dict(nested_change: NestedChange) -> Dict[str, Any]:
     result = {
-        filepath: [nested_change_to_json(change) for change in nested_changes]
-        for filepath, nested_changes in changes.items()
+        "name": nested_change.change.name,
+        "type": nested_change.change.change_type,
+        "line": nested_change.change.line,
+        "changed_lines": nested_change.change.changed_lines,
+        "total_lines": nested_change.change.total_lines,
     }
 
-    return json.dumps(result)
+    children_list: List[Dict[str, Any]] = []
+    if nested_change.children:
+        children_list = [
+            nested_change_to_dict(child) for child in nested_change.children
+        ]
+
+    result["children"] = children_list
+
+    return result
 
 
-def nested_change_to_yaml(nested_change: NestedChange) -> str:
-    base_info = textwrap.dedent(
-        f"""
-            name: {nested_change.change.name}
-            change_type: {nested_change.change.change_type}
-            line: {nested_change.change.line}
-            changed_lines: {nested_change.change.changed_lines}
-            total_lines: {nested_change.change.total_lines}
-        """
-    )
+def results_dict(raw_results: Dict[str, List[NestedChange]]) -> Dict[str, Any]:
+    results = {
+        "locust": [
+            {
+                "file": filepath,
+                "changes": [
+                    nested_change_to_dict(nested_change)
+                    for nested_change in nested_changes
+                ],
+            }
+            for filepath, nested_changes in raw_results.items()
+        ]
+    }
 
-    children_info = [nested_change_to_yaml(child) for child in nested_change.children]
-    for info_string in children_info:
-        lines = [line for line in info_string.split("\n") if line != ""]
-        raw_child_str = f"- {lines[0]}\n" + "\n".join(
-            [f"  {line}" for line in lines[1:]]
-        )
-        base_info += f"\n{raw_child_str}"
+    return results
 
-    return base_info
+
+def render_json(raw_results: Dict[str, List[NestedChange]]) -> str:
+    return json.dumps(results_dict(raw_results))
 
 
 def render_yaml(changes: Dict[str, List[NestedChange]]) -> str:
-    result = "locust:"
-    for filepath, nested_changes in changes.items():
-        result += f"\n\n- file: {filepath}\n  changes:"
-        for nested_change in nested_changes:
-            change_lines = [
-                line
-                for line in nested_change_to_yaml(nested_change).split("\n")
-                if line != ""
-            ]
-            result += f"\n\n  - {change_lines[0]}"
-            for line in change_lines[1:]:
-                result += f"\n    {line}"
-    return result
+    return yaml.dump(results_dict(changes), sort_keys=False)
 
 
 renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {
