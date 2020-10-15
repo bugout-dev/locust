@@ -7,7 +7,7 @@ with open("README.md") as ifp:
     long_description = ifp.read()
 
 setup(
-    name="locust",
+    name="bugout-locust",
     version=LOCUST_VERSION,
     packages=find_packages(),
     install_requires=[
