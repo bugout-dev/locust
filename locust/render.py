@@ -184,11 +184,12 @@ def render_change_as_html(
 
 def html_file_section_handler_vanilla(item: Dict[str, Any]) -> Any:
     filepath = item["file"]
+    file_url = item.get("file_url", filepath)
     change_elements = [
         render_change_as_html(change, filepath, 0, 2) for change in item["changes"]
     ]
     file_elements = [
-        E.H4(E.A(filepath, href=filepath)),
+        E.H4(E.A(filepath, href=file_url)),
         E.B("Changes:"),
         E.UL(*change_elements),
     ]
@@ -197,10 +198,11 @@ def html_file_section_handler_vanilla(item: Dict[str, Any]) -> Any:
 
 def html_file_section_handler_github(item: Dict[str, Any]) -> Any:
     filepath = item["file"]
+    file_url = item.get("file_url", filepath)
     change_elements = [
         render_change_as_html(change, filepath, 0, 2) for change in item["changes"]
     ]
-    file_summary_element = E.H4(E.A(filepath, href=filepath))
+    file_summary_element = E.A(filepath, href=file_url)
     file_elements = [
         E.B("Changes:"),
         E.UL(*change_elements),
@@ -272,10 +274,10 @@ def enrich_with_github_links(
         relative_filepath = "/".join(item["file"].split(os.sep))
         if relative_filepath[0] == "/":
             relative_filepath = relative_filepath[1:]
-        filepath = f"{github_repo_url}/blob/{terminal_ref}/{relative_filepath}"
-        item["file"] = filepath
+        file_url = f"{github_repo_url}/blob/{terminal_ref}/{relative_filepath}"
+        item["file_url"] = file_url
         for change in item["changes"]:
-            change["link"] = f"{filepath}#L{change['line']}"
+            change["link"] = f"{file_url}#L{change['line']}"
 
     return enriched_results
 
