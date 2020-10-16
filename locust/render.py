@@ -134,12 +134,43 @@ def results_dict(raw_results: Dict[str, List[NestedChange]]) -> Dict[str, Any]:
     return results
 
 
-def render_json(raw_results: Dict[str, List[NestedChange]]) -> str:
-    return json.dumps(results_dict(raw_results))
+def render_json(results: Dict[str, Any]) -> str:
+    return json.dumps(results)
 
 
-def render_yaml(changes: Dict[str, List[NestedChange]]) -> str:
-    return yaml.dump(results_dict(changes), sort_keys=False)
+def render_yaml(results: Dict[str, Any]) -> str:
+    return yaml.dump(results, sort_keys=False)
+
+
+def enrich_with_refs(
+    results: Dict[str, Any], initial_ref: str, terminal_ref: Optional[str]
+) -> Dict[str, Any]:
+    enriched_results = copy.deepcopy(results)
+    enriched_results["refs"] = {"initial": initial_ref, "terminal": terminal_ref}
+    return enriched_results
+
+
+def enrich_with_github_links(
+    results: Dict[str, Any], github_repo_url: str, terminal_ref: Optional[str]
+) -> Dict[str, Any]:
+    if terminal_ref is None:
+        raise ValueError("Cannot create GitHub links without a reference to link to")
+
+    if github_repo_url[-1] == "/":
+        github_repo_url = github_repo_url[:-1]
+
+    enriched_results = copy.deepcopy(results)
+
+    for item in enriched_results["locust"]:
+        relative_filepath = "/".join(item["file"].split(os.sep))
+        if relative_filepath[0] == "/":
+            relative_filepath = relative_filepath[1:]
+        filepath = f"{github_repo_url}/blob/{terminal_ref}/{relative_filepath}"
+        item["file"] = filepath
+        for change in item["changes"]:
+            change["link"] = f"{filepath}#L{change['line']}"
+
+    return enriched_results
 
 
 renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {

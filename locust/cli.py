@@ -49,6 +49,15 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         default="json",
         help="Format in which to render results",
     )
+    parser.add_argument(
+        "--github",
+        required=False,
+        default=None,
+        help=(
+            "[Optional] URL for GitHub repository where code is hosted "
+            "(e.g. https://github.com/git/git)"
+        ),
+    )
 
     return parser
 
@@ -58,6 +67,15 @@ def main():
     args = parser.parse_args()
 
     repo = git.get_repository(args.repo)
+
+    initial_ref = repo.revparse_single("HEAD")
+    if args.initial is not None:
+        initial_ref = repo.revparse_single(args.initial)
+
+    terminal_ref = None
+    if args.terminal is not None:
+        terminal_ref = repo.revparse_single(args.terminal)
+
     patches = git.get_patches(repo, args.initial, args.terminal)
     visitor = parse.LocustVisitor(repo, args.terminal, patches)
     changes = visitor.parse_all()
@@ -66,11 +84,14 @@ def main():
     ]
 
     nested_results = render.nest_results(normalized_changes)
+    results = render.results_dict(nested_results)
+    results = render.enrich_with_refs(results, args.initial, args.terminal)
+    if args.github is not None and args.terminal is not None:
+        results = render.enrich_with_github_links(results, args.github, args.terminal)
     renderer = render.renderers[args.format]
-    results = renderer(nested_results)
-
+    results_string = renderer(results)
     with args.output as ofp:
-        print(results, file=ofp)
+        print(results_string, file=ofp)
 
 
 if __name__ == "__main__":
