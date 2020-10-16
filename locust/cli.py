@@ -68,16 +68,16 @@ def main():
 
     repo = git.get_repository(args.repo)
 
-    initial_ref = repo.revparse_single("HEAD")
+    initial_ref = repo.revparse_single("HEAD").short_id
     if args.initial is not None:
-        initial_ref = repo.revparse_single(args.initial)
+        initial_ref = repo.revparse_single(args.initial).short_id
 
     terminal_ref = None
     if args.terminal is not None:
-        terminal_ref = repo.revparse_single(args.terminal)
+        terminal_ref = repo.revparse_single(args.terminal).short_id
 
-    patches = git.get_patches(repo, args.initial, args.terminal)
-    visitor = parse.LocustVisitor(repo, args.terminal, patches)
+    patches = git.get_patches(repo, initial_ref, terminal_ref)
+    visitor = parse.LocustVisitor(repo, terminal_ref, patches)
     changes = visitor.parse_all()
     normalized_changes = [
         render.repo_relative_filepath(args.repo, change) for change in changes
@@ -85,9 +85,9 @@ def main():
 
     nested_results = render.nest_results(normalized_changes)
     results = render.results_dict(nested_results)
-    results = render.enrich_with_refs(results, args.initial, args.terminal)
+    results = render.enrich_with_refs(results, initial_ref, terminal_ref)
     if args.github is not None and args.terminal is not None:
-        results = render.enrich_with_github_links(results, args.github, args.terminal)
+        results = render.enrich_with_github_links(results, args.github, terminal_ref)
     renderer = render.renderers[args.format]
     results_string = renderer(results)
     with args.output as ofp:

@@ -146,7 +146,10 @@ def enrich_with_refs(
     results: Dict[str, Any], initial_ref: str, terminal_ref: Optional[str]
 ) -> Dict[str, Any]:
     enriched_results = copy.deepcopy(results)
-    enriched_results["refs"] = {"initial": initial_ref, "terminal": terminal_ref}
+    enriched_results["refs"] = {
+        "initial": str(initial_ref),
+        "terminal": str(terminal_ref),
+    }
     return enriched_results
 
 
