@@ -8,6 +8,8 @@ import os
 import textwrap
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
+import lxml
+from lxml.html import builder as E
 import yaml
 
 from . import parse
@@ -142,6 +144,71 @@ def render_yaml(results: Dict[str, Any]) -> str:
     return yaml.dump(results, sort_keys=False)
 
 
+def render_change_as_html(
+    change: Dict[str, Any], filepath: str, current_depth: int, max_depth: int
+) -> Optional[Any]:
+    if current_depth >= max_depth:
+        return None
+
+    change_elements: List[Any] = [
+        E.B("Name: "),
+        E.A(change["name"], href=filepath),
+        E.BR(),
+        E.B("Type: "),
+        E.SPAN(change["type"]),
+        E.BR(),
+        E.B("Changed lines: "),
+        E.SPAN(str(change["changed_lines"])),
+    ]
+
+    if change["total_lines"]:
+        change_elements.extend(
+            [E.BR(), E.B("Total lines: "), E.SPAN(str(change["total_lines"]))]
+        )
+
+    if change["children"]:
+        change_elements.extend([E.BR(), E.B("Changes:")])
+    child_elements = []
+    for child in change["children"]:
+        child_elements.append(
+            render_change_as_html(child, filepath, current_depth + 1, max_depth)
+        )
+    change_elements.append(E.UL(*child_elements))
+
+    return E.LI(*change_elements)
+
+
+def render_html(results: Dict[str, Any]) -> str:
+    heading = E.H2("Locust summary")
+    body_elements = [heading]
+
+    refs = results.get("refs")
+    if refs is not None:
+        body_elements.extend([E.H3("Git references")])
+        body_elements.extend([E.B("Initial: "), E.SPAN(refs["initial"]), E.BR()])
+        if refs["terminal"] is not None:
+            body_elements.extend([E.B("Terminal: "), E.SPAN(refs["terminal"]), E.BR()])
+
+    body_elements.append(E.HR())
+
+    changes_by_file = results["locust"]
+    for item in changes_by_file:
+        filepath = item["file"]
+        change_elements = [
+            render_change_as_html(change, filepath, 0, 2) for change in item["changes"]
+        ]
+        file_elements = [
+            E.H3(E.A(filepath, href=filepath)),
+            E.B("Changes:"),
+            E.UL(*change_elements),
+        ]
+        body_elements.extend(file_elements)
+
+    html = E.HTML(E.BODY(*body_elements))
+    results_string = lxml.html.tostring(html).decode()
+    return results_string
+
+
 def enrich_with_refs(
     results: Dict[str, Any], initial_ref: str, terminal_ref: Optional[str]
 ) -> Dict[str, Any]:
@@ -179,4 +246,5 @@ def enrich_with_github_links(
 renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {
     "json": render_json,
     "yaml": render_yaml,
+    "html": render_html,
 }
