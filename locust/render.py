@@ -182,35 +182,67 @@ def render_change_as_html(
     return E.LI(*change_elements)
 
 
-def render_html(results: Dict[str, Any]) -> str:
-    heading = E.H2("Locust summary")
-    body_elements = [heading]
+def html_file_section_handler_vanilla(item: Dict[str, Any]) -> Any:
+    filepath = item["file"]
+    change_elements = [
+        render_change_as_html(change, filepath, 0, 2) for change in item["changes"]
+    ]
+    file_elements = [
+        E.H4(E.A(filepath, href=filepath)),
+        E.B("Changes:"),
+        E.UL(*change_elements),
+    ]
+    return E.DIV(*file_elements)
 
-    refs = results.get("refs")
-    if refs is not None:
-        body_elements.extend([E.H3("Git references")])
-        body_elements.extend([E.B("Initial: "), E.SPAN(refs["initial"]), E.BR()])
-        if refs["terminal"] is not None:
-            body_elements.extend([E.B("Terminal: "), E.SPAN(refs["terminal"]), E.BR()])
 
-    body_elements.append(E.HR())
+def html_file_section_handler_github(item: Dict[str, Any]) -> Any:
+    filepath = item["file"]
+    change_elements = [
+        render_change_as_html(change, filepath, 0, 2) for change in item["changes"]
+    ]
+    file_summary_element = E.H4(E.A(filepath, href=filepath))
+    file_elements = [
+        E.B("Changes:"),
+        E.UL(*change_elements),
+    ]
+    file_elements_div = E.DIV(*file_elements)
+    file_details_element = E.DIV(
+        lxml.html.fromstring(
+            f"<details><summary>{lxml.html.tostring(file_summary_element).decode()}</summary>"
+            f"{lxml.html.tostring(file_elements_div).decode()}</details>"
+        )
+    )
+    return file_details_element
 
-    changes_by_file = results["locust"]
-    for item in changes_by_file:
-        filepath = item["file"]
-        change_elements = [
-            render_change_as_html(change, filepath, 0, 2) for change in item["changes"]
-        ]
-        file_elements = [
-            E.H4(E.A(filepath, href=filepath)),
-            E.B("Changes:"),
-            E.UL(*change_elements),
-        ]
-        body_elements.extend(file_elements)
 
-    html = E.HTML(E.BODY(*body_elements))
-    results_string = lxml.html.tostring(html).decode()
-    return results_string
+def generate_render_html(
+    file_section_handler: Callable[[Dict[str, Any]], Any]
+) -> Callable[[Dict[str, Any]], str]:
+    def render_html(results: Dict[str, Any]) -> str:
+        heading = E.H2("Locust summary")
+        body_elements = [heading]
+
+        refs = results.get("refs")
+        if refs is not None:
+            body_elements.extend([E.H3("Git references")])
+            body_elements.extend([E.B("Initial: "), E.SPAN(refs["initial"]), E.BR()])
+            if refs["terminal"] is not None:
+                body_elements.extend(
+                    [E.B("Terminal: "), E.SPAN(refs["terminal"]), E.BR()]
+                )
+
+        body_elements.append(E.HR())
+
+        changes_by_file = results["locust"]
+        for item in changes_by_file:
+            item_element = file_section_handler(item)
+            body_elements.append(item_element)
+
+        html = E.HTML(E.BODY(*body_elements))
+        results_string = lxml.html.tostring(html).decode()
+        return results_string
+
+    return render_html
 
 
 def enrich_with_refs(
@@ -251,5 +283,6 @@ def enrich_with_github_links(
 renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {
     "json": render_json,
     "yaml": render_yaml,
-    "html": render_html,
+    "html": generate_render_html(html_file_section_handler_vanilla),
+    "html-github": generate_render_html(html_file_section_handler_github),
 }
