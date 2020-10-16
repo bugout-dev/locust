@@ -150,9 +150,13 @@ def render_change_as_html(
     if current_depth >= max_depth:
         return None
 
+    link = change.get("link")
+    if link is None:
+        link = filepath
+
     change_elements: List[Any] = [
         E.B("Name: "),
-        E.A(change["name"], href=filepath),
+        E.A(change["name"], href=link),
         E.BR(),
         E.B("Type: "),
         E.SPAN(change["type"]),
@@ -198,7 +202,7 @@ def render_html(results: Dict[str, Any]) -> str:
             render_change_as_html(change, filepath, 0, 2) for change in item["changes"]
         ]
         file_elements = [
-            E.H3(E.A(filepath, href=filepath)),
+            E.H4(E.A(filepath, href=filepath)),
             E.B("Changes:"),
             E.UL(*change_elements),
         ]
@@ -220,6 +224,7 @@ def enrich_with_refs(
     return enriched_results
 
 
+# TODO(neeraj): Recursively enrich change children with GitHub links
 def enrich_with_github_links(
     results: Dict[str, Any], github_repo_url: str, terminal_ref: Optional[str]
 ) -> Dict[str, Any]:
