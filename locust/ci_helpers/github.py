@@ -39,12 +39,13 @@ def helper_pr(command: str, event: Dict[str, Any]) -> str:
     Event structure defined here:
     https://docs.github.com/en/free-pro-team@latest/developers/webhooks-and-events/webhook-events-and-payloads#pull_request
     """
+    pull_request = event["pull_request"]
     if command == "initial":
-        return event["base"]["sha"]
+        return pull_request["base"]["sha"]
     elif command == "terminal":
-        return event["head"]["sha"]
+        return pull_request["head"]["sha"]
     elif command == "repo":
-        return event["head"]["repo"]["html_url"]
+        return pull_request["head"]["repo"]["html_url"]
 
     raise Exception(f"Unknown command: {command}")
 
