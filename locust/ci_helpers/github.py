@@ -14,7 +14,6 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "command",
         choices=commands,
-        required=True,
         help="Information you would like this helper to provide",
     )
     return parser
@@ -43,6 +42,9 @@ def helper_pr(command: str, event: Dict[str, Any]) -> str:
 
 
 def main():
+    parser = generate_argument_parser()
+    args = parser.parse_args()
+
     helpers: Dict[str, Callable[[str, Dict[str, Any]], str]] = {
         "push": helper_push,
         "pull_request": helper_pr,
@@ -52,9 +54,6 @@ def main():
         raise ValueError(
             f"Helper only works with events of the following types: {','.join(helpers)}"
         )
-
-    parser = generate_argument_parser()
-    args = parser.parse_args()
 
     if args.command == "type":
         print(github_event_name)
