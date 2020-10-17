@@ -34,6 +34,7 @@ LOCUST_DIR=$(dirname "$SCRIPT_DIR")
 
 docker build -t "$LOCUST_DOCKER_TAG" -f "$SCRIPT_DIR/Dockerfile" "$LOCUST_DIR"
 
+docker tag "$LOCUST_DOCKER_TAG" "$LOCUST_DOCKER_REPOSITORY:latest"
 for tag in "$@"
 do
     docker tag "$LOCUST_DOCKER_TAG" "$LOCUST_DOCKER_REPOSITORY:$tag"
@@ -42,6 +43,7 @@ done
 if [ "$LOCUST_DOCKER_PUSH" = "true" ]
 then
     docker push "$LOCUST_DOCKER_TAG"
+    docker push "$LOCUST_DOCKER_REPOSITORY:latest"
     for tag in "$@"
     do
         docker push "$LOCUST_DOCKER_REPOSITORY:$tag"

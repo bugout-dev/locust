@@ -1,2 +1,6 @@
 .git/
 .locust/
+docker/
+.vscode/
+.mypy_cache/
+*.env
