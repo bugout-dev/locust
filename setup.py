@@ -15,7 +15,10 @@ setup(
         "PyYAML",
         "lxml",
     ],
-    extras_require={"dev": ["black", "mypy"]},
+    extras_require={
+        "dev": ["black", "mypy", "wheel"],
+        "distribute": ["twine"],
+    },
     description="Locust: Track changes to Python code across git refs",
     long_description=long_description,
     long_description_content_type="text/markdown",
