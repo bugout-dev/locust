@@ -20,6 +20,10 @@ def generate_argument_parser() -> argparse.ArgumentParser:
 
 
 def helper_push(command: str, event: Dict[str, Any]) -> str:
+    """
+    Event structure defined here:
+    https://docs.github.com/en/free-pro-team@latest/developers/webhooks-and-events/webhook-events-and-payloads#push
+    """
     if command == "initial":
         return event["before"]
     elif command == "terminal":
@@ -31,6 +35,10 @@ def helper_push(command: str, event: Dict[str, Any]) -> str:
 
 
 def helper_pr(command: str, event: Dict[str, Any]) -> str:
+    """
+    Event structure defined here:
+    https://docs.github.com/en/free-pro-team@latest/developers/webhooks-and-events/webhook-events-and-payloads#pull_request
+    """
     if command == "initial":
         return event["base"]["sha"]
     elif command == "terminal":
