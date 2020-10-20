@@ -16,7 +16,7 @@ functions.
 
 Locust is a command line tool, and you can invoke it as:
 ```bash
-locust main docker --format yaml
+locust 22dd7fd6adf392bb29d13d10f10e7dbb1d97bfce c9813bd5871a9919551ccd917712135c40367c5c --format yaml
 ```
 
 This produces the following output:
@@ -27,25 +27,25 @@ locust:
   - name: generate_argument_parser
     type: function
     line: 11
-    changed_lines: 19
+    changed_lines: 9
     total_lines: 9
     children: []
   - name: helper_push
     type: function
     line: 22
-    changed_lines: 34
+    changed_lines: 13
     total_lines: 13
     children: []
   - name: helper_pr
     type: function
     line: 37
-    changed_lines: 50
+    changed_lines: 14
     total_lines: 14
     children: []
   - name: main
     type: function
     line: 53
-    changed_lines: 81
+    changed_lines: 29
     total_lines: 29
     children: []
 refs:
