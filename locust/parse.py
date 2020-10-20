@@ -189,7 +189,7 @@ class LocustVisitor(ast.NodeVisitor):
                         ):
                             end_line = definition.end_line
 
-                        changed_lines += end_line - start + 1
+                        changed_lines += end_line - max(start, definition.line) + 1
 
                 locust_changes.append(
                     LocustChange(
