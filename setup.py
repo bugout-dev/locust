@@ -29,5 +29,10 @@ setup(
         "Programming Language :: Python",
     ],
     url="https://github.com/simiotics/locust",
-    entry_points={"console_scripts": ["locust=locust.cli:main"]},
+    entry_points={
+        "console_scripts": [
+            "locust=locust.cli:main",
+            "locust.github=locust.ci_helpers.github:main",
+        ]
+    },
 )
