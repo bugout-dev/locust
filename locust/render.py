@@ -174,9 +174,11 @@ def render_change_as_html(
         change_elements.extend([E.BR(), E.B("Changes:")])
     child_elements = []
     for child in change["children"]:
-        child_elements.append(
-            render_change_as_html(child, filepath, current_depth + 1, max_depth)
+        child_element = render_change_as_html(
+            child, filepath, current_depth + 1, max_depth
         )
+        if child_element is not None:
+            child_elements.append(child_element)
     change_elements.append(E.UL(*child_elements))
 
     return E.LI(*change_elements)
