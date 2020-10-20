@@ -53,6 +53,8 @@ refs:
   terminal: c9813bd
 ```
 
+## CI/CD
+
 Locust is easy to use in CI/CD pipelines:
 + [Locust GitHub Action](https://github.com/simiotics/locust-action)
 
