@@ -15,7 +15,10 @@ setup(
         "PyYAML",
         "lxml",
     ],
-    extras_require={"dev": ["black", "mypy"]},
+    extras_require={
+        "dev": ["black", "mypy", "wheel"],
+        "distribute": ["twine"],
+    },
     description="Locust: Track changes to Python code across git refs",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -26,5 +29,10 @@ setup(
         "Programming Language :: Python",
     ],
     url="https://github.com/simiotics/locust",
-    entry_points={"console_scripts": ["locust=locust.cli:main"]},
+    entry_points={
+        "console_scripts": [
+            "locust=locust.cli:main",
+            "locust.github=locust.ci_helpers.github:main",
+        ]
+    },
 )
