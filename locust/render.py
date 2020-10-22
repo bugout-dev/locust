@@ -272,14 +272,22 @@ def enrich_with_github_links(
 
     enriched_results = copy.deepcopy(results)
 
+    def _enrich_changes(changes: List[Dict[str, Any]], root_url: str) -> None:
+        """
+        Mutates a list of changes with the updated root URL
+        """
+        for change in changes:
+            change["link"] = f"{root_url}#L{change['line']}"
+            if change.get("children") is not None:
+                _enrich_changes(change["children"], root_url)
+
     for item in enriched_results["locust"]:
         relative_filepath = "/".join(item["file"].split(os.sep))
         if relative_filepath[0] == "/":
             relative_filepath = relative_filepath[1:]
         file_url = f"{github_repo_url}/blob/{terminal_ref}/{relative_filepath}"
         item["file_url"] = file_url
-        for change in item["changes"]:
-            change["link"] = f"{file_url}#L{change['line']}"
+        _enrich_changes(item["changes"], file_url)
 
     return enriched_results
 
