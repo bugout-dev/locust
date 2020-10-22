@@ -57,6 +57,7 @@ def main():
     helpers: Dict[str, Callable[[str, Dict[str, Any]], str]] = {
         "push": helper_push,
         "pull_request": helper_pr,
+        "pull_request_target": helper_pr,
     }
     github_event_name: str = os.environ.get("GITHUB_EVENT_NAME", "")
     if github_event_name not in helpers:
