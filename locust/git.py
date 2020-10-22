@@ -100,6 +100,7 @@ def revision_file(
     content = bytes()
 
     if revision is None:
+        print("THROWAWAY")
         assert (
             os.path.commonpath([repo_path, filepath]) == repo_path
         ), f"File ({filepath}) is not contained in repository ({repo_path})"
