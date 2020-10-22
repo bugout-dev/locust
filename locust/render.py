@@ -223,7 +223,7 @@ def generate_render_html(
     file_section_handler: Callable[[Dict[str, Any]], Any]
 ) -> Callable[[Dict[str, Any]], str]:
     def render_html(results: Dict[str, Any]) -> str:
-        heading = E.H2("Locust summary")
+        heading = E.H2(E.A("Locust", href="https://github.com/simiotics/locust"), " summary")
         body_elements = [heading]
 
         refs = results.get("refs")
