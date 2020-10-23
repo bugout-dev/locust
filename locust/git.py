@@ -2,11 +2,11 @@
 git-related functionality
 """
 import argparse
-from dataclasses import asdict, dataclass
 import json
 import os
 from typing import Any, List, Optional, Tuple
 
+from pydantic import BaseModel
 import pygit2
 
 
@@ -16,22 +16,19 @@ class GitRepositoryNotFound(Exception):
     """
 
 
-@dataclass
-class LineInfo:
+class LineInfo(BaseModel):
     old_line_number: int
     new_line_number: int
     line_type: str
     line: str
 
 
-@dataclass
-class HunkInfo:
+class HunkInfo(BaseModel):
     header: str
     lines: List[LineInfo]
 
 
-@dataclass
-class PatchInfo:
+class PatchInfo(BaseModel):
     old_file: str
     new_file: str
     hunks: List[HunkInfo]

@@ -2,7 +2,6 @@
 Rendering utilities for locust parse results.
 """
 import copy
-from dataclasses import asdict, dataclass
 import json
 import os
 import textwrap
@@ -10,6 +9,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import lxml
 from lxml.html import builder as E
+from pydantic import BaseModel
 import yaml
 
 from . import parse
@@ -17,11 +17,13 @@ from . import parse
 IndexKey = Tuple[str, Optional[str], str, int]
 
 
-@dataclass
-class NestedChange:
+class NestedChange(BaseModel):
     key: IndexKey
     change: parse.LocustChange
-    children: Any
+    children: List["NestedChange"]
+
+
+NestedChange.update_forward_refs()
 
 
 def get_key(change: parse.LocustChange) -> IndexKey:
@@ -223,7 +225,9 @@ def generate_render_html(
     file_section_handler: Callable[[Dict[str, Any]], Any]
 ) -> Callable[[Dict[str, Any]], str]:
     def render_html(results: Dict[str, Any]) -> str:
-        heading = E.H2(E.A("Locust", href="https://github.com/simiotics/locust"), " summary")
+        heading = E.H2(
+            E.A("Locust", href="https://github.com/simiotics/locust"), " summary"
+        )
         body_elements = [heading]
 
         refs = results.get("refs")
