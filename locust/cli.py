@@ -19,6 +19,7 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         epilog=f"Version {version.LOCUST_VERSION}",
     )
     git.populate_argument_parser(parser)
+    render.populate_argument_parser(parser)
     parser.add_argument(
         "-o",
         "--output",
@@ -27,23 +28,6 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         default=sys.stdout,
         help="Path to which to write results",
     )
-    parser.add_argument(
-        "-f",
-        "--format",
-        choices=render.renderers,
-        default="json",
-        help="Format in which to render results",
-    )
-    parser.add_argument(
-        "--github",
-        required=False,
-        default=None,
-        help=(
-            "[Optional] URL for GitHub repository where code is hosted "
-            "(e.g. https://github.com/git/git)"
-        ),
-    )
-
     return parser
 
 
@@ -53,26 +37,15 @@ def main():
 
     git_result = git.run(args.repo, args.initial, args.terminal)
 
-    parse_results = parse.run(git_result)
+    parse_result = parse.run(git_result)
 
-    normalized_changes = [
-        render.repo_relative_filepath(args.repo, change)
-        for change in parse_results.changes
-    ]
+    results_string = render.run(parse_result, args.format, args.github)
 
-    nested_results = render.nest_results(normalized_changes)
-    results = render.results_dict(nested_results)
-    results = render.enrich_with_refs(
-        results, git_result.initial_ref, git_result.terminal_ref
-    )
-    if args.github is not None and args.terminal is not None:
-        results = render.enrich_with_github_links(
-            results, args.github, git_result.terminal_ref
-        )
-    renderer = render.renderers[args.format]
-    results_string = renderer(results)
-    with args.output as ofp:
-        print(results_string, file=ofp)
+    try:
+        with args.output as ofp:
+            print(results_string, file=ofp)
+    except BrokenPipeError:
+        pass
 
 
 if __name__ == "__main__":

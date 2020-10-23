@@ -30,6 +30,7 @@ setup(
             "locust=locust.cli:main",
             "locust.git=locust.git:main",
             "locust.parse=locust.parse:main",
+            "locust.render=locust.render:main",
             "locust.github=locust.ci_helpers.github:main",
         ]
     },

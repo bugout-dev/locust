@@ -173,7 +173,7 @@ def run(repo_dir: str, initial: Optional[str], terminal: Optional[str]) -> RunRe
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Locust: git-related functionality")
+    parser = argparse.ArgumentParser(description="Locust: git functionality")
     populate_argument_parser(parser)
     parser.add_argument(
         "-o",
