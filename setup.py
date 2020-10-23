@@ -10,11 +10,7 @@ setup(
     name="bugout-locust",
     version=LOCUST_VERSION,
     packages=find_packages(),
-    install_requires=[
-        "pygit2",
-        "PyYAML",
-        "lxml",
-    ],
+    install_requires=["pygit2", "PyYAML", "lxml", "pydantic"],
     extras_require={
         "dev": ["black", "mypy", "wheel"],
         "distribute": ["twine"],
