@@ -28,6 +28,7 @@ setup(
     entry_points={
         "console_scripts": [
             "locust=locust.cli:main",
+            "locust.git=locust.git:main",
             "locust.github=locust.ci_helpers.github:main",
         ]
     },
