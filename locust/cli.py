@@ -51,23 +51,23 @@ def main():
     parser = generate_argument_parser()
     args = parser.parse_args()
 
-    git_results = git.run(args.repo, args.initial, args.terminal)
-    visitor = parse.LocustVisitor(
-        git_results.repo, git_results.terminal_ref, git_results.patches
-    )
-    changes = visitor.parse_all()
+    git_result = git.run(args.repo, args.initial, args.terminal)
+
+    parse_results = parse.run(git_result)
+
     normalized_changes = [
-        render.repo_relative_filepath(args.repo, change) for change in changes
+        render.repo_relative_filepath(args.repo, change)
+        for change in parse_results.changes
     ]
 
     nested_results = render.nest_results(normalized_changes)
     results = render.results_dict(nested_results)
     results = render.enrich_with_refs(
-        results, git_results.initial_ref, git_results.terminal_ref
+        results, git_result.initial_ref, git_result.terminal_ref
     )
     if args.github is not None and args.terminal is not None:
         results = render.enrich_with_github_links(
-            results, args.github, git_results.terminal_ref
+            results, args.github, git_result.terminal_ref
         )
     renderer = render.renderers[args.format]
     results_string = renderer(results)

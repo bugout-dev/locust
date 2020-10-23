@@ -35,31 +35,11 @@ class PatchInfo(BaseModel):
     hunks: List[HunkInfo]
 
 
-class RawRunResponse(BaseModel):
-    repo: pygit2.Repository
-    initial_ref: str
-    terminal_ref: Optional[str]
-    patches: List[PatchInfo]
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
 class RunResponse(BaseModel):
     repo: str
     initial_ref: str
     terminal_ref: Optional[str]
     patches: List[PatchInfo]
-
-
-def process_response(raw_response: RawRunResponse) -> RunResponse:
-    repo_dir = os.path.normpath(raw_response.repo.workdir)
-    return RunResponse(
-        repo=repo_dir,
-        initial_ref=raw_response.initial_ref,
-        terminal_ref=raw_response.terminal_ref,
-        patches=raw_response.patches,
-    )
 
 
 def get_repository(path: str = ".") -> pygit2.Repository:
@@ -171,9 +151,7 @@ def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def run(
-    repo_dir: str, initial: Optional[str], terminal: Optional[str]
-) -> RawRunResponse:
+def run(repo_dir: str, initial: Optional[str], terminal: Optional[str]) -> RunResponse:
     repo = get_repository(repo_dir)
 
     initial_ref = repo.revparse_single("HEAD").short_id
@@ -185,9 +163,13 @@ def run(
         terminal_ref = repo.revparse_single(terminal).short_id
 
     patches = get_patches(repo, initial_ref, terminal_ref)
-    return RawRunResponse(
-        repo=repo, initial_ref=initial_ref, terminal_ref=terminal_ref, patches=patches
+    response = RunResponse(
+        repo=os.path.normpath(repo.workdir),
+        initial_ref=initial_ref,
+        terminal_ref=terminal_ref,
+        patches=patches,
     )
+    return response
 
 
 def main():
@@ -207,11 +189,13 @@ def main():
 
     args = parser.parse_args()
 
-    raw_response = run(args.repo, args.initial, args.terminal)
-    response = process_response(raw_response)
+    response = run(args.repo, args.initial, args.terminal)
 
-    with args.output as ofp:
-        print(response.json(), file=ofp)
+    try:
+        with args.output as ofp:
+            print(response.json(), file=ofp)
+    except BrokenPipeError:
+        pass
 
 
 if __name__ == "__main__":

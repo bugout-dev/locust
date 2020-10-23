@@ -3,7 +3,9 @@ AST-related functionality
 """
 import argparse
 import ast
+import json
 import os
+import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel
@@ -209,3 +211,60 @@ class LocustVisitor(ast.NodeVisitor):
         for filepath in self.insertion_boundaries:
             changed_changes.extend(self.parse(filepath))
         return changed_changes
+
+
+class RunResponse(BaseModel):
+    repo: str
+    initial_ref: str
+    terminal_ref: Optional[str]
+    patches: List[git.PatchInfo]
+    changes: List[LocustChange]
+
+
+def run(git_result: git.RunResponse) -> RunResponse:
+    repo = git.get_repository(git_result.repo)
+    visitor = LocustVisitor(repo, git_result.terminal_ref, git_result.patches)
+    changes = visitor.parse_all()
+    return RunResponse(
+        repo=git_result.repo,
+        initial_ref=git_result.initial_ref,
+        terminal_ref=git_result.terminal_ref,
+        patches=git_result.patches,
+        changes=changes,
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Locust: Python parsing functionality")
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=argparse.FileType("r"),
+        default=sys.stdin,
+        help="Path to git result. If not specified, reads from stdin.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=argparse.FileType("w"),
+        default=sys.stdout,
+        help="Path to write parse results to (in JSON format)",
+    )
+
+    args = parser.parse_args()
+
+    with args.input as ifp:
+        git_result_json = json.load(ifp)
+        git_result = git.RunResponse.parse_obj(git_result_json)
+
+    result = run(git_result)
+
+    try:
+        with args.output as ofp:
+            print(result.json(), file=ofp)
+    except BrokenPipeError:
+        pass
+
+
+if __name__ == "__main__":
+    main()
