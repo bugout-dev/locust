@@ -4,3 +4,7 @@ docker/
 .vscode/
 .mypy_cache/
 *.env
+bugout_locust.egg-info/
+build/
+dist/
+tests/
