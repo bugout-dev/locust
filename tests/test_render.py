@@ -10,8 +10,8 @@ from . import config
 class TestLocustRender(unittest.TestCase):
     def test_render_run(self):
         repo_dir = config.TESTCASES_DIR
-        initial = "test_git_initial"
-        terminal = "test_git_terminal"
+        initial = f"{config.TESTCASES_REMOTE}/test_git_initial"
+        terminal = f"{config.TESTCASES_REMOTE}/test_git_terminal"
 
         test_input_fixture = os.path.join(
             config.TESTS_DIR, "fixtures", "test_parse.json"
