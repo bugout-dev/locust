@@ -1,0 +1,1 @@
+{"locust": [{"file": "sample.py", "changes": [{"name": "hello", "type": "function", "line": 3, "changed_lines": 1, "total_lines": 2, "children": []}]}], "refs": {"initial": "3b34883", "terminal": "0838585"}}

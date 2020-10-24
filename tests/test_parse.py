@@ -7,7 +7,7 @@ from locust import git, parse
 from . import config
 
 
-class TestLocustGit(unittest.TestCase):
+class TestLocustParse(unittest.TestCase):
     def test_parse_run(self):
         repo_dir = config.TESTCASES_DIR
         initial = "test_git_initial"
