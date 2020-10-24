@@ -1,15 +1,17 @@
 """
 Rendering utilities for locust parse results.
 """
+import argparse
 import copy
-from dataclasses import asdict, dataclass
 import json
 import os
+import sys
 import textwrap
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import lxml
 from lxml.html import builder as E
+from pydantic import BaseModel
 import yaml
 
 from . import parse
@@ -17,11 +19,13 @@ from . import parse
 IndexKey = Tuple[str, Optional[str], str, int]
 
 
-@dataclass
-class NestedChange:
+class NestedChange(BaseModel):
     key: IndexKey
     change: parse.LocustChange
-    children: Any
+    children: List["NestedChange"]
+
+
+NestedChange.update_forward_refs()
 
 
 def get_key(change: parse.LocustChange) -> IndexKey:
@@ -223,7 +227,9 @@ def generate_render_html(
     file_section_handler: Callable[[Dict[str, Any]], Any]
 ) -> Callable[[Dict[str, Any]], str]:
     def render_html(results: Dict[str, Any]) -> str:
-        heading = E.H2(E.A("Locust", href="https://github.com/simiotics/locust"), " summary")
+        heading = E.H2(
+            E.A("Locust", href="https://github.com/simiotics/locust"), " summary"
+        )
         body_elements = [heading]
 
         refs = results.get("refs")
@@ -298,3 +304,86 @@ renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {
     "html": generate_render_html(html_file_section_handler_vanilla),
     "html-github": generate_render_html(html_file_section_handler_github),
 }
+
+
+def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
+    """
+    Populates an argparse ArgumentParser object with the commonly used arguments for this module.
+
+    Mutates the provided parser.
+    """
+    parser.add_argument(
+        "-f",
+        "--format",
+        choices=renderers,
+        default="json",
+        help="Format in which to render results",
+    )
+    parser.add_argument(
+        "--github",
+        required=False,
+        default=None,
+        help=(
+            "[Optional] URL for GitHub repository where code is hosted "
+            "(e.g. https://github.com/git/git)"
+        ),
+    )
+
+
+def run(
+    parse_result: parse.RunResponse, render_format: str, github_url: Optional[str]
+) -> str:
+    normalized_changes = [
+        repo_relative_filepath(parse_result.repo, change)
+        for change in parse_result.changes
+    ]
+
+    nested_results = nest_results(normalized_changes)
+    results = results_dict(nested_results)
+    results = enrich_with_refs(
+        results, parse_result.initial_ref, parse_result.terminal_ref
+    )
+    if github_url is not None and parse_result.terminal_ref is not None:
+        results = enrich_with_github_links(
+            results, github_url, parse_result.terminal_ref
+        )
+    renderer = renderers[render_format]
+    results_string = renderer(results)
+    return results_string
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Locust: rendering functionality")
+    populate_argument_parser(parser)
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=argparse.FileType("r"),
+        default=sys.stdin,
+        help="Path to parse result. If not specified, reads from stdin.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=argparse.FileType("w"),
+        default=sys.stdout,
+        help="Path to write summary to",
+    )
+
+    args = parser.parse_args()
+
+    with args.input as ifp:
+        parse_result_json = json.load(ifp)
+        parse_result = parse.RunResponse.parse_obj(parse_result_json)
+
+    summary = run(parse_result, args.format, args.github)
+
+    try:
+        with args.output as ofp:
+            print(summary, file=ofp)
+    except BrokenPipeError:
+        pass
+
+
+if __name__ == "__main__":
+    main()

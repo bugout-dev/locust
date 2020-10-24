@@ -3,10 +3,12 @@ AST-related functionality
 """
 import argparse
 import ast
-from dataclasses import dataclass
+import json
 import os
+import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from pydantic import BaseModel
 from pygit2 import Repository
 
 from . import git
@@ -36,8 +38,7 @@ def hunk_boundary(
     return (admissible_lines[0].new_line_number, admissible_lines[-1].new_line_number)
 
 
-@dataclass
-class RawDefinition:
+class RawDefinition(BaseModel):
     name: str
     change_type: str
     line: int
@@ -47,8 +48,7 @@ class RawDefinition:
     parent: Optional[Tuple[str, int]] = None
 
 
-@dataclass
-class LocustChange:
+class LocustChange(BaseModel):
     name: str
     change_type: str
     filepath: str
@@ -113,13 +113,13 @@ class LocustVisitor(ast.NodeVisitor):
             )
         self.definitions.append(
             RawDefinition(
-                ".".join([spec[0] for spec in self.scope]),
-                def_type,
-                node.lineno,
-                node.col_offset,
-                node.end_lineno,
-                node.end_col_offset,
-                parent,
+                name=".".join([spec[0] for spec in self.scope]),
+                change_type=def_type,
+                line=node.lineno,
+                offset=node.col_offset,
+                end_line=node.end_lineno,
+                end_offset=node.end_col_offset,
+                parent=parent,
             )
         )
         self.generic_visit(node)
@@ -193,14 +193,14 @@ class LocustVisitor(ast.NodeVisitor):
 
                 locust_changes.append(
                     LocustChange(
-                        definition.name,
-                        definition.change_type,
-                        filepath,
-                        self.revision,
-                        definition.line,
-                        changed_lines,
-                        total_lines,
-                        definition.parent,
+                        name=definition.name,
+                        change_type=definition.change_type,
+                        filepath=filepath,
+                        revision=self.revision,
+                        line=definition.line,
+                        changed_lines=changed_lines,
+                        total_lines=total_lines,
+                        parent=definition.parent,
                     )
                 )
 
@@ -211,3 +211,60 @@ class LocustVisitor(ast.NodeVisitor):
         for filepath in self.insertion_boundaries:
             changed_changes.extend(self.parse(filepath))
         return changed_changes
+
+
+class RunResponse(BaseModel):
+    repo: str
+    initial_ref: str
+    terminal_ref: Optional[str]
+    patches: List[git.PatchInfo]
+    changes: List[LocustChange]
+
+
+def run(git_result: git.RunResponse) -> RunResponse:
+    repo = git.get_repository(git_result.repo)
+    visitor = LocustVisitor(repo, git_result.terminal_ref, git_result.patches)
+    changes = visitor.parse_all()
+    return RunResponse(
+        repo=git_result.repo,
+        initial_ref=git_result.initial_ref,
+        terminal_ref=git_result.terminal_ref,
+        patches=git_result.patches,
+        changes=changes,
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Locust: Python parsing functionality")
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=argparse.FileType("r"),
+        default=sys.stdin,
+        help="Path to git result. If not specified, reads from stdin.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=argparse.FileType("w"),
+        default=sys.stdout,
+        help="Path to write parse results to (in JSON format)",
+    )
+
+    args = parser.parse_args()
+
+    with args.input as ifp:
+        git_result_json = json.load(ifp)
+        git_result = git.RunResponse.parse_obj(git_result_json)
+
+    result = run(git_result)
+
+    try:
+        with args.output as ofp:
+            print(result.json(), file=ofp)
+    except BrokenPipeError:
+        pass
+
+
+if __name__ == "__main__":
+    main()
