@@ -109,3 +109,22 @@ Locust can produce output in many formats. The currently supported formats are:
 3. HTML (`--format html`)
 
 4. GitHub-flavored HTML, meant to be used with GitHub styles (`--format html-github`)
+
+## Contributing
+
+### Running tests
+
+Make sure to clone [simiotics/locust-test-cases](https://github.com/simiotics/locust-test-cases)
+repo to your machine.
+
+Run:
+
+```bash
+git -c <path to locust-test-cases repo> fetch origin
+```
+
+Then, from the root of this repo:
+
+```bash
+LOCUST_TESTCASES_DIR=<path to locust-test-cases repo> ./test.sh
+```
