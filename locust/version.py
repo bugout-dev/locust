@@ -1,4 +1,9 @@
-LOCUST_VERSION = "0.1.4"
+LOCUST_VERSION = "0.1.5"
+
+
+def main():
+    print(LOCUST_VERSION)
+
 
 if __name__ == "__main__":
-    print(LOCUST_VERSION)
+    main()
