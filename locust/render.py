@@ -333,12 +333,8 @@ def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
 def run(
     parse_result: parse.RunResponse, render_format: str, github_url: Optional[str]
 ) -> str:
-    normalized_changes = [
-        repo_relative_filepath(parse_result.repo, change)
-        for change in parse_result.changes
-    ]
-
-    nested_results = nest_results(normalized_changes)
+    changes = parse_result.changes
+    nested_results = nest_results(changes)
     results = results_dict(nested_results)
     results = enrich_with_refs(
         results, parse_result.initial_ref, parse_result.terminal_ref
