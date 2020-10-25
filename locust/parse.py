@@ -40,34 +40,7 @@ class LocustVisitor(ast.NodeVisitor):
     ASYNC_FUNCTION_DEF = "async_function"
     CLASS_DEF = "class"
 
-    def __init__(
-        self,
-        git_result: git.RunResponse
-        # repository: Repository,
-        # revision: Optional[str],
-        # patches: List[git.PatchInfo],
-    ):
-        # self.repository = repository
-        # self.revision = None
-        # if revision is not None:
-        #     self.revision = repository.revparse_single(revision).short_id
-
-        # self.insertion_boundaries: Dict[str, List[Tuple[int, int]]] = {}
-        # for patch in patches:
-        #     _, extension = os.path.splitext(patch.new_file)
-        #     if extension != ".py":
-        #         continue
-        #     patch_filepath = os.path.realpath(
-        #         os.path.join(repository.workdir, patch.new_file)
-        #     )
-        #     raw_insertion_boundaries = [
-        #         hunk_boundary(hunk, "+") for hunk in patch.hunks
-        #     ]
-        #     self.insertion_boundaries[os.path.abspath(patch_filepath)] = [
-        #         boundary
-        #         for boundary in raw_insertion_boundaries
-        #         if boundary is not None
-        #     ]
+    def __init__(self, git_result: git.RunResponse):
         self.repo = git_result.repo
         self.initial_ref = git_result.initial_ref
         self.terminal_ref = git_result.terminal_ref
