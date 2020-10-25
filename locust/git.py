@@ -90,8 +90,8 @@ def get_patches(
     for patch in patches:
         old_filepath = os.path.join(repository.workdir, patch.old_file)
         new_filepath = os.path.join(repository.workdir, patch.new_file)
-        patch.old_source = revision_file(repository, rev_initial, old_filepath).decode()
-        patch.new_source = revision_file(repository, terminal, new_filepath).decode()
+        patch.old_source = revision_file(repository, rev_initial, old_filepath)
+        patch.new_source = revision_file(repository, terminal, new_filepath)
 
     return patches
 
@@ -150,9 +150,9 @@ def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
 
 def revision_file(
     repository: pygit2.Repository, revision: Optional[str], filepath: str
-) -> bytes:
+) -> Optional[str]:
     """
-    Returns the bytes from the file at the given filepath on the given revision. If revision is
+    Returns the source from the file at the given filepath on the given revision. If revision is
     None, returns the bytes from the filepath in the current working tree.
 
     Filepath is expected to be an absolute, normalized path.
@@ -179,10 +179,13 @@ def revision_file(
         commit = repository.revparse_single(revision)
         current_tree = commit.tree
         for component in components:
-            current_tree = current_tree[component]
+            try:
+                current_tree = current_tree[component]
+            except KeyError:
+                return None
         content = current_tree.data
 
-    return content
+    return content.decode()
 
 
 def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
