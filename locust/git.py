@@ -33,7 +33,9 @@ class HunkBoundary(BaseModel):
 class HunkInfo(BaseModel):
     header: str
     lines: List[LineInfo]
-    boundary: Optional[HunkBoundary] = None
+    total_boundary: Optional[HunkBoundary] = None
+    insertion_boundary: Optional[HunkBoundary] = None
+    deletion_boundary: Optional[HunkBoundary] = None
 
 
 class PatchInfo(BaseModel):
@@ -94,11 +96,39 @@ def get_patches(
     return patches
 
 
+def hunk_boundary(
+    hunk: HunkInfo, operation_type: Optional[str] = None
+) -> Optional[HunkBoundary]:
+    """
+    Calculates boundary for the given hunk, returning a tuple of the form:
+    (<line number of boundary start>, <line number of boundary end>)
+
+    If operation_type is provided, it is used to filter down only to lines whose line_type matches
+    the operation_type. Possible values: "+", "-", None.
+
+    If there are no lines of the  given type in the hunk, returns None.
+    """
+    line_type_p = lambda line: True
+    if operation_type is not None:
+        line_type_p = lambda line: line.line_type == operation_type
+
+    admissible_lines = [line for line in hunk.lines if line_type_p(line)]
+
+    if not admissible_lines:
+        return None
+
+    return HunkBoundary(
+        operation_type=operation_type,
+        start=admissible_lines[0].new_line_number,
+        end=admissible_lines[-1].new_line_number,
+    )
+
+
 def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
     """
     Processes a hunk from a git diff into a HunkInfo object.
     """
-    return HunkInfo(
+    hunk = HunkInfo(
         header=hunk.header,
         lines=[
             LineInfo(
@@ -110,6 +140,12 @@ def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
             for line in hunk.lines
         ],
     )
+
+    hunk.total_boundary = hunk_boundary(hunk, None)
+    hunk.insertion_boundary = hunk_boundary(hunk, "+")
+    hunk.deletion_boundary = hunk_boundary(hunk, "-")
+
+    return hunk
 
 
 def revision_file(
