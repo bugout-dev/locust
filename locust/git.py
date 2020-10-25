@@ -24,15 +24,24 @@ class LineInfo(BaseModel):
     line: str
 
 
+class HunkBoundary(BaseModel):
+    operation_type: Optional[str] = None
+    start: int
+    end: int
+
+
 class HunkInfo(BaseModel):
     header: str
     lines: List[LineInfo]
+    boundary: Optional[HunkBoundary] = None
 
 
 class PatchInfo(BaseModel):
     old_file: str
     new_file: str
     hunks: List[HunkInfo]
+    old_source: Optional[str] = None
+    new_source: Optional[str] = None
 
 
 class RunResponse(BaseModel):
@@ -63,7 +72,7 @@ def get_patches(
     one.
     """
     diff = repository.diff(a=initial, b=terminal, context_lines=0)
-    return [
+    patches = [
         PatchInfo(
             old_file=patch.delta.old_file.path,
             new_file=patch.delta.new_file.path,
@@ -71,6 +80,18 @@ def get_patches(
         )
         for patch in diff
     ]
+
+    rev_initial = initial
+    if rev_initial is None:
+        rev_initial = "HEAD"
+
+    for patch in patches:
+        old_filepath = os.path.join(repository.workdir, patch.old_file)
+        new_filepath = os.path.join(repository.workdir, patch.new_file)
+        patch.old_source = revision_file(repository, rev_initial, old_filepath).decode()
+        patch.new_source = revision_file(repository, terminal, new_filepath).decode()
+
+    return patches
 
 
 def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
