@@ -34,8 +34,8 @@ class HunkInfo(BaseModel):
     header: str
     lines: List[LineInfo]
     total_boundary: Optional[HunkBoundary] = None
-    insertion_boundary: Optional[HunkBoundary] = None
-    deletion_boundary: Optional[HunkBoundary] = None
+    insertions_boundary: Optional[HunkBoundary] = None
+    deletions_boundary: Optional[HunkBoundary] = None
 
 
 class PatchInfo(BaseModel):
@@ -142,8 +142,8 @@ def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
     )
 
     hunk.total_boundary = hunk_boundary(hunk, None)
-    hunk.insertion_boundary = hunk_boundary(hunk, "+")
-    hunk.deletion_boundary = hunk_boundary(hunk, "-")
+    hunk.insertions_boundary = hunk_boundary(hunk, "+")
+    hunk.deletions_boundary = hunk_boundary(hunk, "-")
 
     return hunk
 
