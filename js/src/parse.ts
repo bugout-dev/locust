@@ -1,20 +1,21 @@
 import { promises as fsPromises } from "fs";
 
 import * as parser from "@babel/parser";
+import traverse, { NodePath } from "@babel/traverse";
 import * as babelTypes from "@babel/types";
 
 // The JSON interfaces match the pydantic models in locust/git.py and locust/parse.py
 interface LineInfo {
-  old_line_number: bigint;
-  new_line_number: bigint;
+  old_line_number: number;
+  new_line_number: number;
   line_type: string;
   line: string;
 }
 
 interface HunkBoundary {
   operation_type?: string;
-  start: bigint;
-  end: bigint;
+  start: number;
+  end: number;
 }
 
 interface HunkInfo {
@@ -43,23 +44,23 @@ interface GitResult {
 interface RawDefinition {
   name: string;
   change_type: string;
-  line: bigint;
-  offset: bigint;
-  end_line?: bigint;
-  end_offset?: bigint;
-  parent?: [string, bigint];
+  line: number;
+  offset: number;
+  end_line?: number;
+  end_offset?: number;
+  parent?: [string, number];
 }
 
-interface LocustChange {
-  name: string;
-  change_type: string;
-  filepath: string;
-  revision?: string;
-  line: bigint;
-  changed_lines: bigint;
-  total_lines?: bigint;
-  parent?: [string, bigint];
-}
+// interface LocustChange {
+//   name: string;
+//   change_type: string;
+//   filepath: string;
+//   revision?: string;
+//   line: number;
+//   changed_lines: number;
+//   total_lines?: number;
+//   parent?: [string, number];
+// }
 
 export async function loadInput(inputFile: string): Promise<GitResult> {
   const resultBuffer: Buffer = await fsPromises.readFile(inputFile);
@@ -68,15 +69,106 @@ export async function loadInput(inputFile: string): Promise<GitResult> {
   return result;
 }
 
-export async function locustChanges(result: GitResult): Promise<null> {
-  console.log(result);
+// getDefinitions replicates the logic of the AST visit functions from the LocustVisitor class in
+// the Locust python parser.
+export function getDefinitions(
+  source: string,
+  sourceFilename: string
+): Array<RawDefinition> {
+  if (!source) {
+    return [];
+  }
+
+  let definitions: Array<RawDefinition> = [];
+  let scope: Array<[string, number, number?]> = [];
+
+  const ast: babelTypes.File = parser.parse(source, {
+    sourceFilename,
+    plugins: ["classPrivateMethods", "jsx", "typescript"],
+  });
+
+  function processDeclaration(
+    path:
+      | NodePath<babelTypes.FunctionDeclaration>
+      | NodePath<babelTypes.ClassDeclaration>
+      | NodePath<babelTypes.ClassMethod>
+      | NodePath<babelTypes.ClassPrivateMethod>,
+    definitionType: string
+  ): void {
+    const node = path.node;
+    let idNode: babelTypes.Identifier | null = null;
+    if (node.type === "ClassPrivateMethod") {
+      idNode = node.key.id;
+    } else if (node.type === "ClassMethod") {
+      idNode = node.key as babelTypes.Identifier;
+    } else {
+      idNode = node.id;
+    }
+    if (!idNode || !node.loc) {
+      path.skip();
+    } else {
+      const startLine = node.loc.start.line;
+      const startColumn = node.loc.start.column;
+      const endLine = node.loc.end.line;
+      const endColumn = node.loc.end.column;
+
+      scope = scope.filter((item) => item[2] && item[2] > startLine);
+
+      let parent: [string, number] | undefined = undefined;
+      if (scope.length) {
+        const scopeParent = scope[scope.length - 1];
+        parent = [scopeParent[0], scopeParent[1]];
+      }
+      let name = idNode.name;
+      if (parent) {
+        name = `${parent[0]}.${name}`;
+      }
+      const definition: RawDefinition = {
+        name,
+        change_type: definitionType,
+        line: startLine,
+        offset: startColumn,
+        end_line: endLine,
+        end_offset: endColumn,
+        parent,
+      };
+      definitions.push(definition);
+      scope.push([name, node.loc?.start.line, node.loc?.end.line]);
+    }
+  }
+
+  traverse(ast, {
+    // For now, we skip all anonymous functions
+    FunctionExpression: function (path) {
+      path.skip();
+    },
+    FunctionDeclaration: function (path) {
+      processDeclaration(path, "function");
+    },
+    ClassExpression: function (path) {
+      path.skip();
+    },
+    ClassDeclaration: function (path) {
+      processDeclaration(path, "class");
+    },
+    ClassMethod: function (path) {
+      processDeclaration(path, "method");
+    },
+    ClassPrivateMethod: function (path) {
+      processDeclaration(path, "method");
+    },
+  });
+
+  return definitions;
+}
+
+export function locustChanges(result: GitResult): null {
   const patch = result.patches[0];
   const source = patch.new_source;
+
   if (source) {
-    const ast: babelTypes.File = parser.parse(source, {
-      sourceFilename: patch.new_file,
-    });
-    console.log(ast.program);
+    const definitions = getDefinitions(source, patch.new_file);
+    console.log(definitions);
   }
 
   return null;

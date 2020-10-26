@@ -54,10 +54,24 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.locustChanges = exports.loadInput = void 0;
+exports.locustChanges = exports.getDefinitions = exports.loadInput = void 0;
 var fs_1 = require("fs");
 var parser = __importStar(require("@babel/parser"));
+var traverse_1 = __importDefault(require("@babel/traverse"));
+// interface LocustChange {
+//   name: string;
+//   change_type: string;
+//   filepath: string;
+//   revision?: string;
+//   line: number;
+//   changed_lines: number;
+//   total_lines?: number;
+//   parent?: [string, number];
+// }
 function loadInput(inputFile) {
     return __awaiter(this, void 0, void 0, function () {
         var resultBuffer, resultString, result;
@@ -74,21 +88,91 @@ function loadInput(inputFile) {
     });
 }
 exports.loadInput = loadInput;
-function locustChanges(result) {
-    return __awaiter(this, void 0, void 0, function () {
-        var patch, source, ast;
-        return __generator(this, function (_a) {
-            console.log(result);
-            patch = result.patches[0];
-            source = patch.new_source;
-            if (source) {
-                ast = parser.parse(source, {
-                    sourceFilename: patch.new_file,
-                });
-                console.log(ast.program);
-            }
-            return [2 /*return*/, null];
-        });
+function getDefinitions(source, sourceFilename) {
+    if (!source) {
+        return [];
+    }
+    var definitions = [];
+    var scope = [];
+    var ast = parser.parse(source, {
+        sourceFilename: sourceFilename,
+        plugins: ["classPrivateMethods", "jsx", "typescript"],
     });
+    function processDeclaration(path, definitionType) {
+        var _a, _b;
+        var node = path.node;
+        var idNode = null;
+        if (node.type === "ClassPrivateMethod") {
+            idNode = node.key.id;
+        }
+        else if (node.type === "ClassMethod") {
+            idNode = node.key;
+        }
+        else {
+            idNode = node.id;
+        }
+        if (!idNode || !node.loc) {
+            path.skip();
+        }
+        else {
+            var startLine_1 = node.loc.start.line;
+            var startColumn = node.loc.start.column;
+            var endLine = node.loc.end.line;
+            var endColumn = node.loc.end.column;
+            scope = scope.filter(function (item) { return item[2] && item[2] > startLine_1; });
+            var parent_1 = undefined;
+            if (scope.length) {
+                var scopeParent = scope[scope.length - 1];
+                parent_1 = [scopeParent[0], scopeParent[1]];
+            }
+            var name_1 = idNode.name;
+            if (parent_1) {
+                name_1 = parent_1[0] + "." + name_1;
+            }
+            var definition = {
+                name: name_1,
+                change_type: definitionType,
+                line: startLine_1,
+                offset: startColumn,
+                end_line: endLine,
+                end_offset: endColumn,
+                parent: parent_1,
+            };
+            definitions.push(definition);
+            scope.push([name_1, (_a = node.loc) === null || _a === void 0 ? void 0 : _a.start.line, (_b = node.loc) === null || _b === void 0 ? void 0 : _b.end.line]);
+        }
+    }
+    traverse_1.default(ast, {
+        // For now, we skip all anonymous functions
+        FunctionExpression: function (path) {
+            path.skip();
+        },
+        FunctionDeclaration: function (path) {
+            processDeclaration(path, "function");
+        },
+        ClassExpression: function (path) {
+            path.skip();
+        },
+        ClassDeclaration: function (path) {
+            processDeclaration(path, "class");
+        },
+        ClassMethod: function (path) {
+            processDeclaration(path, "method");
+        },
+        ClassPrivateMethod: function (path) {
+            processDeclaration(path, "method");
+        },
+    });
+    return definitions;
+}
+exports.getDefinitions = getDefinitions;
+function locustChanges(result) {
+    var patch = result.patches[0];
+    var source = patch.new_source;
+    if (source) {
+        var definitions = getDefinitions(source, patch.new_file);
+        console.log(definitions);
+    }
+    return null;
 }
 exports.locustChanges = locustChanges;

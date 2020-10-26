@@ -54,7 +54,6 @@ class LocustVisitor(ast.NodeVisitor):
 
         self.scope: List[Tuple[str, int, Optional[int]]] = []
         self.definitions: List[RawDefinition] = []
-        self.imports: Dict[str, str] = {}
 
     def _visit_class_or_function_def(
         self,
@@ -96,7 +95,6 @@ class LocustVisitor(ast.NodeVisitor):
     def reset(self):
         self.scope = []
         self.definitions = []
-        self.imports = {}
 
     def parse(self, filepath: str) -> List[LocustChange]:
         patch = self.patches.get(filepath)
