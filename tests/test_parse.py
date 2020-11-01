@@ -32,7 +32,7 @@ class TestLocustParse(unittest.TestCase):
             )
         expected_result_json = json.loads(expected_result_str)
 
-        result = parse.run(test_input)
+        result = parse.run(test_input, [])
         result_json = result.dict()
 
         self.assertDictEqual(result_json, expected_result_json)
