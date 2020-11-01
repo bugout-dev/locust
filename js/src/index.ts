@@ -1,6 +1,6 @@
 import yargs from "yargs";
 
-import { loadInput, locustChanges } from "./parse";
+import { loadInput, definitionsByPatch, writeOutput } from "./parse";
 
 const args = yargs(process.argv.slice(2))
   .usage("$0 -i [input_file] -o [output_file]")
@@ -15,4 +15,6 @@ const args = yargs(process.argv.slice(2))
     type: "string",
   }).argv;
 
-loadInput(args.i).then(locustChanges);
+loadInput(args.i)
+  .then(definitionsByPatch)
+  .then((results) => writeOutput(results, args.o));

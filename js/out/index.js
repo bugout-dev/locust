@@ -17,4 +17,6 @@ var args = yargs_1.default(process.argv.slice(2))
     demandOption: false,
     type: "string",
 }).argv;
-parse_1.loadInput(args.i).then(parse_1.locustChanges);
+parse_1.loadInput(args.i)
+    .then(parse_1.definitionsByPatch)
+    .then(function (results) { return parse_1.writeOutput(results, args.o); });

@@ -1,4 +1,4 @@
-import { promises as fsPromises } from "fs";
+import { promises as fsPromises, writeFileSync } from "fs";
 
 import * as parser from "@babel/parser";
 import traverse, { NodePath } from "@babel/traverse";
@@ -50,17 +50,6 @@ interface RawDefinition {
   end_offset?: number;
   parent?: [string, number];
 }
-
-// interface LocustChange {
-//   name: string;
-//   change_type: string;
-//   filepath: string;
-//   revision?: string;
-//   line: number;
-//   changed_lines: number;
-//   total_lines?: number;
-//   parent?: [string, number];
-// }
 
 export async function loadInput(inputFile: string): Promise<GitResult> {
   const resultBuffer: Buffer = await fsPromises.readFile(inputFile);
@@ -162,14 +151,31 @@ export function getDefinitions(
   return definitions;
 }
 
-export function locustChanges(result: GitResult): null {
-  const patch = result.patches[0];
+export function definitionsForPatch(patch: PatchInfo): Array<RawDefinition> {
   const source = patch.new_source;
-
-  if (source) {
-    const definitions = getDefinitions(source, patch.new_file);
-    console.log(definitions);
+  if (!source) {
+    return [];
   }
+  const definitions = getDefinitions(source, patch.new_file);
+  return definitions;
+}
 
-  return null;
+export function definitionsByPatch(
+  result: GitResult
+): Array<[PatchInfo, Array<RawDefinition>]> {
+  return result.patches
+    .filter((patch) => patch.new_file.split(".").pop() === "js")
+    .map((patch) => [patch, definitionsForPatch(patch)]);
+}
+
+export function writeOutput(
+  patchDefinitions: Array<[PatchInfo, Array<RawDefinition>]>,
+  outfile?: string
+): void {
+  const output = JSON.stringify(patchDefinitions);
+  if (!outfile) {
+    console.log(output);
+  } else {
+    writeFileSync(outfile, output);
+  }
 }

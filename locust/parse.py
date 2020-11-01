@@ -199,8 +199,15 @@ def calculate_python_changes(git_result: git.RunResponse) -> List[LocustChange]:
 def calculate_changes_from_file(
     git_result: git.RunResponse, patch_definitions_json: str
 ) -> List[LocustChange]:
-    with open(patch_definitions_json, "w") as ifp:
-        patch_definitions = json.load(ifp)
+    with open(patch_definitions_json, "r") as ifp:
+        patch_definitions_raw = json.load(ifp)
+    patch_definitions = [
+        (
+            git.PatchInfo.parse_obj(item[0]),
+            [RawDefinition.parse_obj(definition_obj) for definition_obj in item[1]],
+        )
+        for item in patch_definitions_raw
+    ]
     return calculate_changes(git_result, patch_definitions)
 
 
@@ -229,13 +236,16 @@ def calculate_plugin_changes(
 
     for plugin, outfile in outfiles.items():
         results[plugin] = []
+        run_string = f"{plugin} -i {git_result_filename} -o {outfile}"
         try:
-            subprocess.run(
-                f"{plugin} -i {git_result_filename} -o {outfile}", check=True
-            )
+            subprocess.run(run_string, check=True, shell=True)
             changes = calculate_changes_from_file(git_result, outfile)
             results[plugin] = changes
-        except:
+        except Exception as e:
+            print(
+                f"Error getting results from plugin ({plugin}):\n{repr(e)}",
+                file=sys.stderr,
+            )
             pass
 
     return results

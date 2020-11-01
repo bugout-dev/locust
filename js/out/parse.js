@@ -58,20 +58,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.locustChanges = exports.getDefinitions = exports.loadInput = void 0;
+exports.writeOutput = exports.definitionsByPatch = exports.definitionsForPatch = exports.getDefinitions = exports.loadInput = void 0;
 var fs_1 = require("fs");
 var parser = __importStar(require("@babel/parser"));
 var traverse_1 = __importDefault(require("@babel/traverse"));
-// interface LocustChange {
-//   name: string;
-//   change_type: string;
-//   filepath: string;
-//   revision?: string;
-//   line: number;
-//   changed_lines: number;
-//   total_lines?: number;
-//   parent?: [string, number];
-// }
 function loadInput(inputFile) {
     return __awaiter(this, void 0, void 0, function () {
         var resultBuffer, resultString, result;
@@ -88,6 +78,8 @@ function loadInput(inputFile) {
     });
 }
 exports.loadInput = loadInput;
+// getDefinitions replicates the logic of the AST visit functions from the LocustVisitor class in
+// the Locust python parser.
 function getDefinitions(source, sourceFilename) {
     if (!source) {
         return [];
@@ -166,13 +158,26 @@ function getDefinitions(source, sourceFilename) {
     return definitions;
 }
 exports.getDefinitions = getDefinitions;
-function locustChanges(result) {
-    var patch = result.patches[0];
+function definitionsForPatch(patch) {
     var source = patch.new_source;
-    if (source) {
-        var definitions = getDefinitions(source, patch.new_file);
-        console.log(definitions);
+    if (!source) {
+        return [];
     }
-    return null;
+    var definitions = getDefinitions(source, patch.new_file);
+    return definitions;
 }
-exports.locustChanges = locustChanges;
+exports.definitionsForPatch = definitionsForPatch;
+function definitionsByPatch(result) {
+    return result.patches.map(function (patch) { return [patch, definitionsForPatch(patch)]; });
+}
+exports.definitionsByPatch = definitionsByPatch;
+function writeOutput(patchDefinitions, outfile) {
+    var output = JSON.stringify(patchDefinitions);
+    if (!outfile) {
+        console.log(output);
+    }
+    else {
+        fs_1.writeFileSync(outfile, output);
+    }
+}
+exports.writeOutput = writeOutput;
