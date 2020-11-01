@@ -264,9 +264,23 @@ def run(git_result: git.RunResponse, plugins: List[str]) -> RunResponse:
         changes=changes,
     )
 
+def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
+    """
+    Populates an argparse ArgumentParser object with the commonly used arguments for this module.
+
+    Mutates the provided parser.
+    """
+    parser.add_argument(
+        "-p",
+        "--plugins",
+        nargs="*",
+        help="List of commands which invoke Locust plugins",
+    )
+
 
 def main():
     parser = argparse.ArgumentParser(description="Locust: Python parsing functionality")
+    populate_argument_parser(parser)
     parser.add_argument(
         "-i",
         "--input",
@@ -280,12 +294,6 @@ def main():
         type=argparse.FileType("w"),
         default=sys.stdout,
         help="Path to write parse results to (in JSON format)",
-    )
-    parser.add_argument(
-        "-p",
-        "--plugins",
-        nargs="*",
-        help="List of commands which invoke Locust plugins",
     )
 
     args = parser.parse_args()

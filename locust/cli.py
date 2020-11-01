@@ -19,6 +19,7 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         epilog=f"Version {version.LOCUST_VERSION}",
     )
     git.populate_argument_parser(parser)
+    parse.populate_argument_parser(parser)
     render.populate_argument_parser(parser)
     parser.add_argument(
         "-o",
@@ -37,7 +38,7 @@ def main():
 
     git_result = git.run(args.repo, args.initial, args.terminal)
 
-    parse_result = parse.run(git_result)
+    parse_result = parse.run(git_result, args.plugins)
 
     results_string = render.run(parse_result, args.format, args.github)
 
