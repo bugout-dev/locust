@@ -39,7 +39,7 @@ def main():
 
     parse_result = parse.run(git_result)
 
-    results_string = render.run(parse_result, args.format, args.github)
+    results_string = render.run(parse_result, args.format, args.github, args.metadata)
 
     try:
         with args.output as ofp:
