@@ -28,6 +28,11 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         default=sys.stdout,
         help="Path to which to write results",
     )
+    parser.add_argument(
+        "-m",
+        "--metadata",
+        help="Add additional data to summary",
+    )
     return parser
 
 
@@ -40,6 +45,9 @@ def main():
     parse_result = parse.run(git_result)
 
     results_string = render.run(parse_result, args.format, args.github)
+
+    if args.metadata and args.format == "json":
+        results_string = results_string[:-1] + args.metadata + "}"
 
     try:
         with args.output as ofp:
