@@ -266,6 +266,15 @@ def enrich_with_refs(
     return enriched_results
 
 
+def enrich_with_metadata(
+    results: Dict[str, Any], metadata: Dict[str, Any]
+) -> Dict[str, Any]:
+    enriched_results = copy.deepcopy(results)
+    for key, value in metadata.items():
+        enriched_results[key] = value
+    return enriched_results
+
+
 # TODO(neeraj): Recursively enrich change children with GitHub links
 def enrich_with_github_links(
     results: Dict[str, Any], github_repo_url: str, terminal_ref: Optional[str]
@@ -328,10 +337,20 @@ def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
             "(e.g. https://github.com/git/git)"
         ),
     )
+    parser.add_argument(
+        "-m",
+        "--metadata",
+        type=json.loads,
+        default=None,
+        help="JSON object specifying additional metadata for Locust summary",
+    )
 
 
 def run(
-    parse_result: parse.RunResponse, render_format: str, github_url: Optional[str]
+    parse_result: parse.RunResponse,
+    render_format: str,
+    github_url: Optional[str],
+    additional_metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
     normalized_changes = [
         repo_relative_filepath(parse_result.repo, change)
@@ -343,6 +362,8 @@ def run(
     results = enrich_with_refs(
         results, parse_result.initial_ref, parse_result.terminal_ref
     )
+    if additional_metadata is not None:
+        results = enrich_with_metadata(results, additional_metadata)
     if github_url is not None and parse_result.terminal_ref is not None:
         results = enrich_with_github_links(
             results, github_url, parse_result.terminal_ref
@@ -376,7 +397,7 @@ def main():
         parse_result_json = json.load(ifp)
         parse_result = parse.RunResponse.parse_obj(parse_result_json)
 
-    summary = run(parse_result, args.format, args.github)
+    summary = run(parse_result, args.format, args.github, args.metadata)
 
     try:
         with args.output as ofp:
