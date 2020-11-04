@@ -1,4 +1,4 @@
-# <img src="./img/locust-black.svg" height="20" width="20"/> locust
+# <img src="./img/locust-black.svg" height="40" width="40"/> locust
 
 "It's `git diff --stat` on steroids!" - [@scottmilliken](https://gitlab.com/scottmilliken)
 
