@@ -8,3 +8,4 @@ bugout_locust.egg-info/
 build/
 dist/
 tests/
+js/node_modules
