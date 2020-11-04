@@ -1,5 +1,7 @@
 # locust
 
+![Locust logo](./img/locust-black.svg =100px)
+
 "It's `git diff --stat` on steroids!" - [@scottmilliken](https://gitlab.com/scottmilliken)
 
 ## What is Locust?
