@@ -1,6 +1,6 @@
 # locust
 
-![Locust logo](./img/locust-black.svg =100x100)
+<img src="./img/locust-black.svg" height="100" width="100"/>
 
 "It's `git diff --stat` on steroids!" - [@scottmilliken](https://gitlab.com/scottmilliken)
 
