@@ -24,15 +24,26 @@ class LineInfo(BaseModel):
     line: str
 
 
+class HunkBoundary(BaseModel):
+    operation_type: Optional[str] = None
+    start: int
+    end: int
+
+
 class HunkInfo(BaseModel):
     header: str
     lines: List[LineInfo]
+    total_boundary: Optional[HunkBoundary] = None
+    insertions_boundary: Optional[HunkBoundary] = None
+    deletions_boundary: Optional[HunkBoundary] = None
 
 
 class PatchInfo(BaseModel):
     old_file: str
     new_file: str
     hunks: List[HunkInfo]
+    old_source: Optional[str] = None
+    new_source: Optional[str] = None
 
 
 class RunResponse(BaseModel):
@@ -63,7 +74,7 @@ def get_patches(
     one.
     """
     diff = repository.diff(a=initial, b=terminal, context_lines=0)
-    return [
+    patches = [
         PatchInfo(
             old_file=patch.delta.old_file.path,
             new_file=patch.delta.new_file.path,
@@ -72,12 +83,52 @@ def get_patches(
         for patch in diff
     ]
 
+    rev_initial = initial
+    if rev_initial is None:
+        rev_initial = "HEAD"
+
+    for patch in patches:
+        old_filepath = os.path.join(repository.workdir, patch.old_file)
+        new_filepath = os.path.join(repository.workdir, patch.new_file)
+        patch.old_source = revision_file(repository, rev_initial, old_filepath)
+        patch.new_source = revision_file(repository, terminal, new_filepath)
+
+    return patches
+
+
+def hunk_boundary(
+    hunk: HunkInfo, operation_type: Optional[str] = None
+) -> Optional[HunkBoundary]:
+    """
+    Calculates boundary for the given hunk, returning a tuple of the form:
+    (<line number of boundary start>, <line number of boundary end>)
+
+    If operation_type is provided, it is used to filter down only to lines whose line_type matches
+    the operation_type. Possible values: "+", "-", None.
+
+    If there are no lines of the  given type in the hunk, returns None.
+    """
+    line_type_p = lambda line: True
+    if operation_type is not None:
+        line_type_p = lambda line: line.line_type == operation_type
+
+    admissible_lines = [line for line in hunk.lines if line_type_p(line)]
+
+    if not admissible_lines:
+        return None
+
+    return HunkBoundary(
+        operation_type=operation_type,
+        start=admissible_lines[0].new_line_number,
+        end=admissible_lines[-1].new_line_number,
+    )
+
 
 def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
     """
     Processes a hunk from a git diff into a HunkInfo object.
     """
-    return HunkInfo(
+    hunk = HunkInfo(
         header=hunk.header,
         lines=[
             LineInfo(
@@ -90,12 +141,18 @@ def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
         ],
     )
 
+    hunk.total_boundary = hunk_boundary(hunk, None)
+    hunk.insertions_boundary = hunk_boundary(hunk, "+")
+    hunk.deletions_boundary = hunk_boundary(hunk, "-")
+
+    return hunk
+
 
 def revision_file(
     repository: pygit2.Repository, revision: Optional[str], filepath: str
-) -> bytes:
+) -> Optional[str]:
     """
-    Returns the bytes from the file at the given filepath on the given revision. If revision is
+    Returns the source from the file at the given filepath on the given revision. If revision is
     None, returns the bytes from the filepath in the current working tree.
 
     Filepath is expected to be an absolute, normalized path.
@@ -122,10 +179,13 @@ def revision_file(
         commit = repository.revparse_single(revision)
         current_tree = commit.tree
         for component in components:
-            current_tree = current_tree[component]
+            try:
+                current_tree = current_tree[component]
+            except KeyError:
+                return None
         content = current_tree.data
 
-    return content
+    return content.decode()
 
 
 def populate_argument_parser(parser: argparse.ArgumentParser) -> None:

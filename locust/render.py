@@ -92,17 +92,6 @@ def nest_results(
     return results
 
 
-def repo_relative_filepath(
-    repo_dir: str, change: parse.LocustChange
-) -> parse.LocustChange:
-    """
-    Changes the filepath on a LocustChange so that it is relative to the repo directory.
-    """
-    updated_change = copy.copy(change)
-    updated_change.filepath = os.path.relpath(change.filepath, start=repo_dir)
-    return updated_change
-
-
 def nested_change_to_dict(nested_change: NestedChange) -> Dict[str, Any]:
     result = {
         "name": nested_change.change.name,
@@ -352,12 +341,8 @@ def run(
     github_url: Optional[str],
     additional_metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
-    normalized_changes = [
-        repo_relative_filepath(parse_result.repo, change)
-        for change in parse_result.changes
-    ]
-
-    nested_results = nest_results(normalized_changes)
+    changes = parse_result.changes
+    nested_results = nest_results(changes)
     results = results_dict(nested_results)
     results = enrich_with_refs(
         results, parse_result.initial_ref, parse_result.terminal_ref

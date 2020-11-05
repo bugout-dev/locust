@@ -8,6 +8,8 @@ from . import config
 
 
 class TestLocustParse(unittest.TestCase):
+    maxDiff = None
+
     def test_parse_run(self):
         repo_dir = config.TESTCASES_DIR
         initial = f"{config.TESTCASES_REMOTE}/test_git_initial"
@@ -30,7 +32,7 @@ class TestLocustParse(unittest.TestCase):
             )
         expected_result_json = json.loads(expected_result_str)
 
-        result = parse.run(test_input)
+        result = parse.run(test_input, [])
         result_json = result.dict()
 
         self.assertDictEqual(result_json, expected_result_json)

@@ -8,6 +8,8 @@ from . import config
 
 
 class TestLocustGit(unittest.TestCase):
+    maxDiff = None
+
     def test_git_run(self):
         repo_dir = config.TESTCASES_DIR
         initial = f"{config.TESTCASES_REMOTE}/test_git_initial"

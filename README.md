@@ -1,20 +1,52 @@
-# locust
+# <img src="./img/locust-black.svg" height="20" width="20"/> locust
 
 "It's `git diff --stat` on steroids!" - [@scottmilliken](https://gitlab.com/scottmilliken)
 
 ## What is Locust?
 
-Locust reduces turnaround time on code reviews.
+Locust helps you reason about your code base as it evolves over time.
 
-It can take a lot of effort for a reviewer to relate the line-by-line changes in a patch to
-their mental model of the code base. This is a consistent impediment to fast responses on code
-reviews.
+Locust provides a semantic layer on top of `git diff`. It emits metadata describing changes to your
+code base between git revisions.
 
-Locust provides a semantic layer on top of `git diff`. Where `git diff` describes changes in terms
-of the lines in the code base, Locust summarizes changes by the effect on modules, classes, and
-functions.
+This metadata is useful to both humans and computers. For example:
 
-## How does it work?
+1. (Humans) Locust can generate
+   [much more humane summaries of changes](https://github.com/bugout-dev/locust/pull/34) than the
+   standard git diff.
+
+2. (Computers) [Bugout.dev](https://alpha.bugout.dev) uses Locust metadata to learn high level
+   abstractions about code.
+
+## Installation
+
+Locust requires Python3 (specifically, it was written in Python3.8).
+
+### Install from PyPI
+
+```bash
+pip install bugout-locust
+```
+
+### Install from source
+
+Clone this repository and run from the project root:
+
+```bash
+python setup.py install
+```
+
+### Docker
+
+You can also use the Locust docker image:
+
+```bash
+docker pull bugout/locust
+```
+
+## Usage
+
+### CLI
 
 Locust is a command line tool, and you can invoke it as:
 
@@ -57,37 +89,42 @@ refs:
   terminal: c9813bd
 ```
 
-## CI/CD
+### Language plugins
+
+To use Locust to process a code base containing Python (>3.5) and Javascript, use the Javascript
+plugin (written in Node 14).
+
+If you are running Locust from the root of this project, you would do this as follows:
+
+```
+locust -r <path to repo> <initial revision> <terminal revision> --plugins "node js/out/index.js"
+```
+
+A Locust language plugin is simply a program that you can invoke from the shell (like
+`node js/out/index.js`) which takes two arguments:
+
+- `-i` - an input file containing a `locust.git.RunResponse` object
+
+- `-o` - path to an output file into which it writes a list of tuples consisting of
+  `locust.git.PatchInfo` objects and their corresponding list of `locust.parse.RawDefinition`
+  objects.
+
+The [Javascript plugin](./js/) provides a rubric for how to build your own plugin.
+
+You can add custom plugins to a Locust invocation like this:
+
+```
+locust -r <path to repo> <initial revision> <terminal revision> \
+  --plugins "node js/out/index.js" "<custom plugin invocation 1>" "<custom plugin invocation 2>"
+```
+
+### CI/CD
 
 Locust is easy to use in CI/CD pipelines:
 
 - [Locust GitHub Action](https://github.com/simiotics/locust-action)
 
-## Installation
-
-Locust requires Python3 (specifically, it was written in Python3.8).
-
-### Install from PyPI
-
-```bash
-pip install bugout-locust
-```
-
-### Install from source
-
-Clone this repository and run from the project root:
-
-```bash
-python setup.py install
-```
-
 ### Docker
-
-You can also use the Locust docker image:
-
-```bash
-docker pull bugout/locust
-```
 
 To run Locust using docker:
 
@@ -128,3 +165,15 @@ Then, from the root of this repo:
 ```bash
 LOCUST_TESTCASES_DIR=<path to locust-test-cases repo> ./test.sh
 ```
+
+## Similar projects
+
+### Kythe
+
+[Kythe](https://kythe.io) is a Google open source project. It grew out of the need to semantically
+link different parts of Google's code base.
+
+The goals of Locust are different from those of Kythe. Locust is specifically about generating
+metadata describing _changes_ to code.
+
+Kythe on GitHub: https://github.com/kythe/kythe

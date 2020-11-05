@@ -5,37 +5,15 @@ import argparse
 import ast
 import json
 import os
+import subprocess
 import sys
+import tempfile
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel
 from pygit2 import Repository
 
 from . import git
-
-
-def hunk_boundary(
-    hunk: git.HunkInfo, operation_type: Optional[str] = None
-) -> Optional[Tuple[int, int]]:
-    """
-    Calculates boundary for the given hunk, returning a tuple of the form:
-    (<line number of boundary start>, <line number of boundary end>)
-
-    If operation_type is provided, it is used to filter down only to lines whose line_type matches
-    the operation_type. Possible values: "+", "-", None.
-
-    If there are no lines of the  given type in the hunk, returns None.
-    """
-    line_type_p = lambda line: True
-    if operation_type is not None:
-        line_type_p = lambda line: line.line_type == operation_type
-
-    admissible_lines = [line for line in hunk.lines if line_type_p(line)]
-
-    if not admissible_lines:
-        return None
-
-    return (admissible_lines[0].new_line_number, admissible_lines[-1].new_line_number)
 
 
 class RawDefinition(BaseModel):
@@ -64,37 +42,9 @@ class LocustVisitor(ast.NodeVisitor):
     ASYNC_FUNCTION_DEF = "async_function"
     CLASS_DEF = "class"
 
-    def __init__(
-        self,
-        repository: Repository,
-        revision: Optional[str],
-        patches: List[git.PatchInfo],
-    ):
-        self.repository = repository
-        self.revision = None
-        if revision is not None:
-            self.revision = repository.revparse_single(revision).short_id
-
-        self.insertion_boundaries: Dict[str, List[Tuple[int, int]]] = {}
-        for patch in patches:
-            _, extension = os.path.splitext(patch.new_file)
-            if extension != ".py":
-                continue
-            patch_filepath = os.path.realpath(
-                os.path.join(repository.workdir, patch.new_file)
-            )
-            raw_insertion_boundaries = [
-                hunk_boundary(hunk, "+") for hunk in patch.hunks
-            ]
-            self.insertion_boundaries[os.path.abspath(patch_filepath)] = [
-                boundary
-                for boundary in raw_insertion_boundaries
-                if boundary is not None
-            ]
-
+    def __init__(self):
         self.scope: List[Tuple[str, int, Optional[int]]] = []
         self.definitions: List[RawDefinition] = []
-        self.imports: Dict[str, str] = {}
 
     def _visit_class_or_function_def(
         self,
@@ -136,81 +86,15 @@ class LocustVisitor(ast.NodeVisitor):
     def reset(self):
         self.scope = []
         self.definitions = []
-        self.imports = {}
 
-    def parse(self, filepath: str) -> List[LocustChange]:
-        abs_filepath = os.path.realpath(os.path.abspath(filepath))
-        if (
-            abs_filepath not in self.insertion_boundaries
-            or not self.insertion_boundaries[abs_filepath]
-        ):
-            return []
-
-        insertion_boundaries = sorted(
-            self.insertion_boundaries[abs_filepath], key=lambda p: p[0]
-        )
-
-        source_bytes = git.revision_file(self.repository, self.revision, filepath)
-        source = source_bytes.decode()
-
-        root = ast.parse(source)
+    def patch_definitions(self, patch: git.PatchInfo) -> List[RawDefinition]:
         self.reset()
+        _, extension = os.path.splitext(patch.new_file)
+        if extension != ".py" or patch.new_source is None:
+            return []
+        root = ast.parse(patch.new_source)
         self.visit(root)
-
-        locust_changes: List[LocustChange] = []
-        for definition in self.definitions:
-            possible_boundaries = [
-                boundary
-                for boundary in insertion_boundaries
-                if definition.end_line is None or boundary[0] <= definition.end_line
-            ]
-            if not possible_boundaries:
-                continue
-
-            total_lines: Optional[int] = None
-            if definition.end_line is not None:
-                total_lines = definition.end_line - definition.line + 1
-
-            candidate_insertion = max(
-                possible_boundaries,
-                key=lambda p: p[0],
-            )
-
-            if candidate_insertion[1] >= definition.line:
-                changed_lines = 0
-                for start, end in possible_boundaries:
-                    if (end >= definition.line) and (
-                        definition.end_line is None or start <= definition.end_line
-                    ):
-                        end_line = end
-                        if (
-                            definition.end_line is not None
-                            and definition.end_line < end
-                        ):
-                            end_line = definition.end_line
-
-                        changed_lines += end_line - max(start, definition.line) + 1
-
-                locust_changes.append(
-                    LocustChange(
-                        name=definition.name,
-                        change_type=definition.change_type,
-                        filepath=filepath,
-                        revision=self.revision,
-                        line=definition.line,
-                        changed_lines=changed_lines,
-                        total_lines=total_lines,
-                        parent=definition.parent,
-                    )
-                )
-
-        return locust_changes
-
-    def parse_all(self) -> List[LocustChange]:
-        changed_changes: List[LocustChange] = []
-        for filepath in self.insertion_boundaries:
-            changed_changes.extend(self.parse(filepath))
-        return changed_changes
+        return self.definitions
 
 
 class RunResponse(BaseModel):
@@ -221,10 +105,157 @@ class RunResponse(BaseModel):
     changes: List[LocustChange]
 
 
-def run(git_result: git.RunResponse) -> RunResponse:
-    repo = git.get_repository(git_result.repo)
-    visitor = LocustVisitor(repo, git_result.terminal_ref, git_result.patches)
-    changes = visitor.parse_all()
+def definitions_by_patch(
+    git_result: git.RunResponse,
+) -> List[Tuple[git.PatchInfo, List[RawDefinition]]]:
+    results: List[Tuple[git.PatchInfo, List[RawDefinition]]] = []
+    for patch in git_result.patches:
+        visitor = LocustVisitor()
+        try:
+            definitions = visitor.patch_definitions(patch)
+            results.append((patch, definitions))
+        except:
+            pass
+    return results
+
+
+def locust_changes_in_patch(
+    patch: git.PatchInfo, definitions: List[RawDefinition], terminal_ref: Optional[str]
+) -> Tuple[git.PatchInfo, List[LocustChange]]:
+    pass
+    insertions_boundaries: List[Tuple[int, int]] = []
+    for hunk in patch.hunks:
+        if hunk.insertions_boundary is not None:
+            insertions_boundaries.append(
+                (hunk.insertions_boundary.start, hunk.insertions_boundary.end)
+            )
+    insertions_boundaries.sort(key=lambda p: p[0])
+
+    locust_changes: List[LocustChange] = []
+    for definition in definitions:
+        possible_boundaries = [
+            boundary
+            for boundary in insertions_boundaries
+            if definition.end_line is None or boundary[0] <= definition.end_line
+        ]
+        if not possible_boundaries:
+            continue
+
+        total_lines: Optional[int] = None
+        if definition.end_line is not None:
+            total_lines = definition.end_line - definition.line + 1
+
+        candidate_insertion = max(
+            possible_boundaries,
+            key=lambda p: p[0],
+        )
+
+        if candidate_insertion[1] >= definition.line:
+            changed_lines = 0
+            for start, end in possible_boundaries:
+                if (end >= definition.line) and (
+                    definition.end_line is None or start <= definition.end_line
+                ):
+                    end_line = end
+                    if definition.end_line is not None and definition.end_line < end:
+                        end_line = definition.end_line
+
+                    changed_lines += end_line - max(start, definition.line) + 1
+
+            locust_changes.append(
+                LocustChange(
+                    name=definition.name,
+                    change_type=definition.change_type,
+                    filepath=patch.new_file,
+                    revision=terminal_ref,
+                    line=definition.line,
+                    changed_lines=changed_lines,
+                    total_lines=total_lines,
+                    parent=definition.parent,
+                )
+            )
+
+    return (patch, locust_changes)
+
+
+def calculate_changes(
+    git_result: git.RunResponse,
+    patch_definitions: List[Tuple[git.PatchInfo, List[RawDefinition]]],
+) -> List[LocustChange]:
+    changes: List[LocustChange] = []
+    for patch, definitions in patch_definitions:
+        _, patch_changes = locust_changes_in_patch(
+            patch, definitions, git_result.terminal_ref
+        )
+        changes.extend(patch_changes)
+    return changes
+
+
+def calculate_python_changes(git_result: git.RunResponse) -> List[LocustChange]:
+    patch_definitions = definitions_by_patch(git_result)
+    return calculate_changes(git_result, patch_definitions)
+
+
+def calculate_changes_from_file(
+    git_result: git.RunResponse, patch_definitions_json: str
+) -> List[LocustChange]:
+    with open(patch_definitions_json, "r") as ifp:
+        patch_definitions_raw = json.load(ifp)
+    patch_definitions = [
+        (
+            git.PatchInfo.parse_obj(item[0]),
+            [RawDefinition.parse_obj(definition_obj) for definition_obj in item[1]],
+        )
+        for item in patch_definitions_raw
+    ]
+    return calculate_changes(git_result, patch_definitions)
+
+
+def calculate_plugin_changes(
+    plugins: List[str], git_result: git.RunResponse
+) -> Dict[str, List[LocustChange]]:
+    """
+    Accepts a list of plugins (which can be invoked using subprocess.run and accept -i and -o
+    parameters) and a git.RunResponse object.
+
+    Returns a dictionary whose keys are the plugins and whose values are tuples of the form:
+    (locust changes, errors)
+    """
+    results: Dict[str, List[LocustChange]] = {}
+    if not plugins:
+        return results
+    fd, git_result_filename = tempfile.mkstemp()
+    os.close(fd)
+    with open(git_result_filename, "w") as ofp:
+        json.dump(git_result.dict(), ofp)
+
+    outfiles: Dict[str, str] = {}
+    for plugin in plugins:
+        fd, outfiles[plugin] = tempfile.mkstemp()
+        os.close(fd)
+
+    for plugin, outfile in outfiles.items():
+        results[plugin] = []
+        run_string = f"{plugin} -i {git_result_filename} -o {outfile}"
+        try:
+            subprocess.run(run_string, check=True, shell=True)
+            changes = calculate_changes_from_file(git_result, outfile)
+            results[plugin] = changes
+        except Exception as e:
+            print(
+                f"Error getting results from plugin ({plugin}):\n{repr(e)}",
+                file=sys.stderr,
+            )
+            pass
+
+    return results
+
+
+def run(git_result: git.RunResponse, plugins: List[str]) -> RunResponse:
+    changes = calculate_python_changes(git_result)
+    plugin_changes_dict = calculate_plugin_changes(plugins, git_result)
+    for _, plugin_changes in plugin_changes_dict.items():
+        changes.extend(plugin_changes)
     return RunResponse(
         repo=git_result.repo,
         initial_ref=git_result.initial_ref,
@@ -233,9 +264,23 @@ def run(git_result: git.RunResponse) -> RunResponse:
         changes=changes,
     )
 
+def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
+    """
+    Populates an argparse ArgumentParser object with the commonly used arguments for this module.
+
+    Mutates the provided parser.
+    """
+    parser.add_argument(
+        "-p",
+        "--plugins",
+        nargs="*",
+        help="List of commands which invoke Locust plugins",
+    )
+
 
 def main():
     parser = argparse.ArgumentParser(description="Locust: Python parsing functionality")
+    populate_argument_parser(parser)
     parser.add_argument(
         "-i",
         "--input",
@@ -257,7 +302,7 @@ def main():
         git_result_json = json.load(ifp)
         git_result = git.RunResponse.parse_obj(git_result_json)
 
-    result = run(git_result)
+    result = run(git_result, args.plugins)
 
     try:
         with args.output as ofp:
