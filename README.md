@@ -6,7 +6,8 @@
 
 Locust helps you reason about your code base as it evolves over time.
 
-Locust provides a semantic layer on top of `git diff`. It emits metadata describing changes to your
+Locust provides a semantic layer on top of `git diff`. It emits metadata describing
+[AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree)-level changes to your
 code base between git revisions.
 
 This metadata is useful to both humans and computers. For example:
