@@ -7,5 +7,6 @@ docker/
 bugout_locust.egg-info/
 build/
 dist/
+__pycache__
 tests/
 js/node_modules
