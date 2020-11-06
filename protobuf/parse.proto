@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package locust.parse;
 
-import "protobuf/git.proto";
+import "git.proto";
 
 message DefinitionParent {
     string name = 1;
