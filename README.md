@@ -26,6 +26,7 @@ Locust requires Python3 (specifically, it was written in Python3.8).
 ### Install from PyPI
 
 ```bash
+pip install -U setuptools
 pip install bugout-locust
 ```
 
