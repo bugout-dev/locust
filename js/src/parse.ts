@@ -41,6 +41,11 @@ interface GitResult {
   patches: Array<PatchInfo>;
 }
 
+interface DefinitionParent {
+  name: string;
+  line: number;
+}
+
 interface RawDefinition {
   name: string;
   change_type: string;
@@ -48,7 +53,7 @@ interface RawDefinition {
   offset: number;
   end_line?: number;
   end_offset?: number;
-  parent?: [string, number];
+  parent?: DefinitionParent;
 }
 
 export async function loadInput(inputFile: string): Promise<GitResult> {
@@ -103,14 +108,14 @@ export function getDefinitions(
 
       scope = scope.filter((item) => item[2] && item[2] > startLine);
 
-      let parent: [string, number] | undefined = undefined;
+      let parent: DefinitionParent | undefined = undefined;
       if (scope.length) {
         const scopeParent = scope[scope.length - 1];
-        parent = [scopeParent[0], scopeParent[1]];
+        parent = { name: scopeParent[0], line: scopeParent[1] };
       }
       let name = idNode.name;
       if (parent) {
-        name = `${parent[0]}.${name}`;
+        name = `${parent.name}.${name}`;
       }
       const definition: RawDefinition = {
         name,

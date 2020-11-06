@@ -115,11 +115,11 @@ function getDefinitions(source, sourceFilename) {
             var parent_1 = undefined;
             if (scope.length) {
                 var scopeParent = scope[scope.length - 1];
-                parent_1 = [scopeParent[0], scopeParent[1]];
+                parent_1 = { name: scopeParent[0], line: scopeParent[1] };
             }
             var name_1 = idNode.name;
             if (parent_1) {
-                name_1 = parent_1[0] + "." + name_1;
+                name_1 = parent_1.name + "." + name_1;
             }
             var definition = {
                 name: name_1,
@@ -168,7 +168,9 @@ function definitionsForPatch(patch) {
 }
 exports.definitionsForPatch = definitionsForPatch;
 function definitionsByPatch(result) {
-    return result.patches.map(function (patch) { return [patch, definitionsForPatch(patch)]; });
+    return result.patches
+        .filter(function (patch) { return patch.new_file.split(".").pop() === "js"; })
+        .map(function (patch) { return [patch, definitionsForPatch(patch)]; });
 }
 exports.definitionsByPatch = definitionsByPatch;
 function writeOutput(patchDefinitions, outfile) {
