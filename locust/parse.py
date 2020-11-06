@@ -10,7 +10,7 @@ import sys
 import tempfile
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from google.protobuf.json_format import MessageToJson, Parse, ParseDict
+from google.protobuf.json_format import MessageToDict, Parse, ParseDict
 from pydantic import BaseModel
 from pygit2 import Repository
 
@@ -200,7 +200,7 @@ def calculate_plugin_changes(
     fd, git_result_filename = tempfile.mkstemp()
     os.close(fd)
     with open(git_result_filename, "w") as ofp:
-        print(MessageToJson(git_result, preserving_proto_field_name=True), file=ofp)
+        json.dump(MessageToDict(git_result, preserving_proto_field_name=True), ofp)
 
     outfiles: Dict[str, str] = {}
     for plugin in plugins:
@@ -279,7 +279,10 @@ def main():
 
     try:
         with args.output as ofp:
-            print(MessageToJson(result, preserving_proto_field_name=True), file=ofp)
+            print(
+                json.dumps(MessageToDict(result, preserving_proto_field_name=True)),
+                file=ofp,
+            )
     except BrokenPipeError:
         pass
 

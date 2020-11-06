@@ -7,7 +7,7 @@ import os
 import sys
 from typing import Any, List, Optional, Tuple
 
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToDict
 import pygit2
 
 from .git_pb2 import LineInfo, HunkBoundary, HunkInfo, PatchInfo, GitResult
@@ -234,7 +234,8 @@ def main():
 
     try:
         with args.output as ofp:
-            print(MessageToJson(response, preserving_proto_field_name=True), file=ofp)
+            response_dict = MessageToDict(response, preserving_proto_field_name=True)
+            print(json.dumps(response_dict), file=ofp)
     except BrokenPipeError:
         pass
 
