@@ -6,7 +6,7 @@ import "git.proto";
 
 message DefinitionParent {
     string name = 1;
-    string line = 2;
+    int32 line = 2;
 }
 
 message RawDefinition {

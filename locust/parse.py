@@ -10,31 +10,12 @@ import sys
 import tempfile
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from google.protobuf.json_format import MessageToJson, Parse, ParseDict
 from pydantic import BaseModel
 from pygit2 import Repository
 
 from . import git
-
-
-class RawDefinition(BaseModel):
-    name: str
-    change_type: str
-    line: int
-    offset: int
-    end_line: Optional[int] = None
-    end_offset: Optional[int] = None
-    parent: Optional[Tuple[str, int]] = None
-
-
-class LocustChange(BaseModel):
-    name: str
-    change_type: str
-    filepath: str
-    revision: Optional[str]
-    line: int
-    changed_lines: int
-    total_lines: Optional[int] = None
-    parent: Optional[Tuple[str, int]] = None
+from .parse_pb2 import RawDefinition, LocustChange, ParseResult, DefinitionParent
 
 
 class LocustVisitor(ast.NodeVisitor):
@@ -55,11 +36,11 @@ class LocustVisitor(ast.NodeVisitor):
             spec for spec in self.scope if spec[2] is not None and spec[2] > node.lineno
         ]
         self.scope.append((node.name, node.lineno, node.end_lineno))
-        parent: Optional[Tuple[str, int]] = None
+        parent: Optional[DefinitionParent] = None
         if len(self.scope) > 1:
-            parent = (
-                ".".join([spec[0] for spec in self.scope[:-1]]),
-                self.scope[-2][1],
+            parent = DefinitionParent(
+                name=".".join([spec[0] for spec in self.scope[:-1]]),
+                line=self.scope[-2][1],
             )
         self.definitions.append(
             RawDefinition(
@@ -97,16 +78,8 @@ class LocustVisitor(ast.NodeVisitor):
         return self.definitions
 
 
-class RunResponse(BaseModel):
-    repo: str
-    initial_ref: str
-    terminal_ref: Optional[str]
-    patches: List[git.PatchInfo]
-    changes: List[LocustChange]
-
-
 def definitions_by_patch(
-    git_result: git.RunResponse,
+    git_result: git.GitResult,
 ) -> List[Tuple[git.PatchInfo, List[RawDefinition]]]:
     results: List[Tuple[git.PatchInfo, List[RawDefinition]]] = []
     for patch in git_result.patches:
@@ -179,7 +152,7 @@ def locust_changes_in_patch(
 
 
 def calculate_changes(
-    git_result: git.RunResponse,
+    git_result: git.GitResult,
     patch_definitions: List[Tuple[git.PatchInfo, List[RawDefinition]]],
 ) -> List[LocustChange]:
     changes: List[LocustChange] = []
@@ -191,20 +164,20 @@ def calculate_changes(
     return changes
 
 
-def calculate_python_changes(git_result: git.RunResponse) -> List[LocustChange]:
+def calculate_python_changes(git_result: git.GitResult) -> List[LocustChange]:
     patch_definitions = definitions_by_patch(git_result)
     return calculate_changes(git_result, patch_definitions)
 
 
 def calculate_changes_from_file(
-    git_result: git.RunResponse, patch_definitions_json: str
+    git_result: git.GitResult, patch_definitions_json: str
 ) -> List[LocustChange]:
     with open(patch_definitions_json, "r") as ifp:
         patch_definitions_raw = json.load(ifp)
     patch_definitions = [
         (
-            git.PatchInfo.parse_obj(item[0]),
-            [RawDefinition.parse_obj(definition_obj) for definition_obj in item[1]],
+            ParseDict(item[0], git.PatchInfo()),
+            [ParseDict(definition_obj, RawDefinition()) for definition_obj in item[1]],
         )
         for item in patch_definitions_raw
     ]
@@ -212,11 +185,11 @@ def calculate_changes_from_file(
 
 
 def calculate_plugin_changes(
-    plugins: List[str], git_result: git.RunResponse
+    plugins: List[str], git_result: git.GitResult
 ) -> Dict[str, List[LocustChange]]:
     """
     Accepts a list of plugins (which can be invoked using subprocess.run and accept -i and -o
-    parameters) and a git.RunResponse object.
+    parameters) and a git.GitResult object.
 
     Returns a dictionary whose keys are the plugins and whose values are tuples of the form:
     (locust changes, errors)
@@ -227,7 +200,7 @@ def calculate_plugin_changes(
     fd, git_result_filename = tempfile.mkstemp()
     os.close(fd)
     with open(git_result_filename, "w") as ofp:
-        json.dump(git_result.dict(), ofp)
+        print(MessageToJson(git_result, preserving_proto_field_name=True), file=ofp)
 
     outfiles: Dict[str, str] = {}
     for plugin in plugins:
@@ -251,18 +224,19 @@ def calculate_plugin_changes(
     return results
 
 
-def run(git_result: git.RunResponse, plugins: List[str]) -> RunResponse:
+def run(git_result: git.GitResult, plugins: List[str]) -> ParseResult:
     changes = calculate_python_changes(git_result)
     plugin_changes_dict = calculate_plugin_changes(plugins, git_result)
     for _, plugin_changes in plugin_changes_dict.items():
         changes.extend(plugin_changes)
-    return RunResponse(
+    return ParseResult(
         repo=git_result.repo,
         initial_ref=git_result.initial_ref,
         terminal_ref=git_result.terminal_ref,
         patches=git_result.patches,
         changes=changes,
     )
+
 
 def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
     """
@@ -299,14 +273,13 @@ def main():
     args = parser.parse_args()
 
     with args.input as ifp:
-        git_result_json = json.load(ifp)
-        git_result = git.RunResponse.parse_obj(git_result_json)
+        git_result = Parse(ifp.read(), git.GitResult())
 
     result = run(git_result, args.plugins)
 
     try:
         with args.output as ofp:
-            print(result.json(), file=ofp)
+            print(MessageToJson(result, preserving_proto_field_name=True), file=ofp)
     except BrokenPipeError:
         pass
 

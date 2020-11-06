@@ -8,7 +8,7 @@ test:
 docker:
 	docker/build.sh $(ARGS)
 
-protogen: locust/git_pb2.py locust/parse_pb2.py locust/git_pb2.pyi locust/parse_pb2.pyi
+protogen: locust/git_pb2.py locust/parse_pb2.py locust/git_pb2.pyi locust/parse_pb2.pyi locust/render_pb2.py locust/render_pb2.pyi
 
 locust/git_pb2.py:
 	protoc -Iprotobuf/ --python_out=locust/ protobuf/git.proto
@@ -23,6 +23,14 @@ locust/parse_pb2.py:
 locust/parse_pb2.pyi:
 	protoc -Iprotobuf/ --mypy_out=locust/ protobuf/parse.proto
 	sed -i -e 's/from git_pb2 import /from \.git_pb2 import/g' locust/parse_pb2.pyi
+
+locust/render_pb2.py:
+	protoc -Iprotobuf/ --python_out=locust/ protobuf/render.proto
+	sed -i -e 's/import parse_pb2/from \. import parse_pb2/g' locust/render_pb2.py
+
+locust/render_pb2.pyi:
+	protoc -Iprotobuf/ --mypy_out=locust/ protobuf/render.proto
+	sed -i -e 's/from parse_pb2 import /from \.parse_pb2 import/g' locust/render_pb2.pyi
 
 build dist bugout_locust.egg-info:
 	python setup.py sdist bdist_wheel
