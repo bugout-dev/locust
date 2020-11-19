@@ -74,6 +74,7 @@ export function getDefinitions(
   const ast: babelTypes.File = parser.parse(source, {
     sourceFilename,
     plugins: ["classPrivateMethods", "jsx", "typescript"],
+    sourceType: "unambiguous",
   });
 
   function processDeclaration(
@@ -164,7 +165,14 @@ export function definitionsByPatch(
   result: GitResult
 ): Array<[PatchInfo, Array<RawDefinition>]> {
   return result.patches
-    .filter((patch) => patch.new_file.split(".").pop() === "js")
+    .filter((patch) => {
+      const fileExtension = patch.new_file.split(".").pop();
+      return (
+        fileExtension === "js" ||
+        fileExtension === "jsx" ||
+        fileExtension == "ts"
+      );
+    })
     .map((patch) => [patch, definitionsForPatch(patch)]);
 }
 

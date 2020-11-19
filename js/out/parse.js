@@ -89,6 +89,7 @@ function getDefinitions(source, sourceFilename) {
     var ast = parser.parse(source, {
         sourceFilename: sourceFilename,
         plugins: ["classPrivateMethods", "jsx", "typescript"],
+        sourceType: "unambiguous",
     });
     function processDeclaration(path, definitionType) {
         var _a, _b;
@@ -169,7 +170,12 @@ function definitionsForPatch(patch) {
 exports.definitionsForPatch = definitionsForPatch;
 function definitionsByPatch(result) {
     return result.patches
-        .filter(function (patch) { return patch.new_file.split(".").pop() === "js"; })
+        .filter(function (patch) {
+        var fileExtension = patch.new_file.split(".").pop();
+        return (fileExtension === "js" ||
+            fileExtension === "jsx" ||
+            fileExtension == "ts");
+    })
         .map(function (patch) { return [patch, definitionsForPatch(patch)]; });
 }
 exports.definitionsByPatch = definitionsByPatch;
