@@ -101,6 +101,18 @@ function getDefinitions(source, sourceFilename) {
         else if (node.type === "ClassMethod") {
             idNode = node.key;
         }
+        else if (node.type === "JSXElement") {
+            var jsxNameElement = node.openingElement.name;
+            if (jsxNameElement.type === "JSXMemberExpression") {
+                return;
+            }
+            else if (jsxNameElement.type === "JSXNamespacedName") {
+                idNode = jsxNameElement.name;
+            }
+            else {
+                idNode = jsxNameElement;
+            }
+        }
         else {
             idNode = node.id;
         }
@@ -154,6 +166,9 @@ function getDefinitions(source, sourceFilename) {
         },
         ClassPrivateMethod: function (path) {
             processDeclaration(path, "method");
+        },
+        JSXElement: function (path) {
+            processDeclaration(path, "component");
         },
     });
     return definitions;
