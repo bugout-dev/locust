@@ -74,6 +74,7 @@ export function getDefinitions(
   const ast: babelTypes.File = parser.parse(source, {
     sourceFilename,
     plugins: ["classPrivateMethods", "jsx", "typescript"],
+    sourceType: "unambiguous",
   });
 
   function processDeclaration(
@@ -81,15 +82,25 @@ export function getDefinitions(
       | NodePath<babelTypes.FunctionDeclaration>
       | NodePath<babelTypes.ClassDeclaration>
       | NodePath<babelTypes.ClassMethod>
-      | NodePath<babelTypes.ClassPrivateMethod>,
+      | NodePath<babelTypes.ClassPrivateMethod>
+      | NodePath<babelTypes.JSXElement>,
     definitionType: string
   ): void {
     const node = path.node;
-    let idNode: babelTypes.Identifier | null = null;
+    let idNode: babelTypes.Identifier | babelTypes.JSXIdentifier | null = null;
     if (node.type === "ClassPrivateMethod") {
       idNode = node.key.id;
     } else if (node.type === "ClassMethod") {
       idNode = node.key as babelTypes.Identifier;
+    } else if (node.type === "JSXElement") {
+      const jsxNameElement = node.openingElement.name;
+      if (jsxNameElement.type === "JSXMemberExpression") {
+        return;
+      } else if (jsxNameElement.type === "JSXNamespacedName") {
+        idNode = jsxNameElement.name;
+      } else {
+        idNode = jsxNameElement;
+      }
     } else {
       idNode = node.id;
     }
@@ -146,6 +157,9 @@ export function getDefinitions(
     ClassPrivateMethod: function (path) {
       processDeclaration(path, "method");
     },
+    JSXElement: function (path) {
+      processDeclaration(path, "component");
+    },
   });
 
   return definitions;
@@ -164,7 +178,14 @@ export function definitionsByPatch(
   result: GitResult
 ): Array<[PatchInfo, Array<RawDefinition>]> {
   return result.patches
-    .filter((patch) => patch.new_file.split(".").pop() === "js")
+    .filter((patch) => {
+      const fileExtension = patch.new_file.split(".").pop();
+      return (
+        fileExtension === "js" ||
+        fileExtension === "jsx" ||
+        fileExtension === "ts"
+      );
+    })
     .map((patch) => [patch, definitionsForPatch(patch)]);
 }
 
