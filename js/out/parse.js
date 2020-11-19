@@ -174,7 +174,7 @@ function definitionsByPatch(result) {
         var fileExtension = patch.new_file.split(".").pop();
         return (fileExtension === "js" ||
             fileExtension === "jsx" ||
-            fileExtension == "ts");
+            fileExtension === "ts");
     })
         .map(function (patch) { return [patch, definitionsForPatch(patch)]; });
 }

@@ -170,7 +170,7 @@ export function definitionsByPatch(
       return (
         fileExtension === "js" ||
         fileExtension === "jsx" ||
-        fileExtension == "ts"
+        fileExtension === "ts"
       );
     })
     .map((patch) => [patch, definitionsForPatch(patch)]);
