@@ -168,7 +168,9 @@ function definitionsForPatch(patch) {
 }
 exports.definitionsForPatch = definitionsForPatch;
 function definitionsByPatch(result) {
-    return result.patches.map(function (patch) { return [patch, definitionsForPatch(patch)]; });
+    return result.patches
+        .filter(function (patch) { return patch.new_file.split(".").pop() === "js"; })
+        .map(function (patch) { return [patch, definitionsForPatch(patch)]; });
 }
 exports.definitionsByPatch = definitionsByPatch;
 function writeOutput(patchDefinitions, outfile) {
