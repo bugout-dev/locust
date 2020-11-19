@@ -90,8 +90,14 @@ def get_patches(
     for patch in patches:
         old_filepath = os.path.join(repository.workdir, patch.old_file)
         new_filepath = os.path.join(repository.workdir, patch.new_file)
-        patch.old_source = revision_file(repository, rev_initial, old_filepath)
-        patch.new_source = revision_file(repository, terminal, new_filepath)
+        try:
+            patch.old_source = revision_file(repository, rev_initial, old_filepath)
+        except:
+            pass
+        try:
+            patch.new_source = revision_file(repository, terminal, new_filepath)
+        except:
+            pass
 
     return patches
 
