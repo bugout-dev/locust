@@ -151,6 +151,9 @@ def render_yaml(results: Dict[str, Any]) -> str:
 def render_change_as_html(
     change: Dict[str, Any], filepath: str, current_depth: int, max_depth: int
 ) -> Optional[Any]:
+    """
+    Returns nested part of report in a uncompressed format.
+    """
     if current_depth >= max_depth:
         return None
 
@@ -188,6 +191,45 @@ def render_change_as_html(
     return E.LI(*change_elements)
 
 
+def render_change_as_compressed_html(
+    change: Dict[str, Any], filepath: str, current_depth: int, max_depth: int
+) -> Optional[Any]:
+    """
+    Returns nested part of report in a compact format.
+    Useful for large changes as it allows to perceive more functions and classes.
+    """
+    if current_depth >= max_depth:
+        return None
+
+    link = change.get("link")
+    if link is None:
+        link = filepath
+
+    change_elements: List[Any] = [
+        E.B(change["type"]),
+        E.SPAN(" "),
+        E.A(change["name"], href=link),
+        E.B(" changed lines: "),
+        E.SPAN(str(change["changed_lines"])),
+    ]
+
+    if change["total_lines"]:
+        change_elements.extend([E.SPAN("/"), E.SPAN(str(change["total_lines"]))])
+
+    if change["children"]:
+        change_elements.extend([E.BR()])
+    child_elements = []
+    for child in change["children"]:
+        child_element = render_change_as_compressed_html(
+            child, filepath, current_depth + 1, max_depth
+        )
+        if child_element is not None:
+            child_elements.append(child_element)
+    change_elements.append(E.UL(*child_elements))
+
+    return E.LI(*change_elements)
+
+
 def html_file_section_handler_vanilla(item: Dict[str, Any]) -> Any:
     filepath = item["file"]
     file_url = item.get("file_url", filepath)
@@ -202,25 +244,36 @@ def html_file_section_handler_vanilla(item: Dict[str, Any]) -> Any:
     return E.DIV(*file_elements)
 
 
-def html_file_section_handler_github(item: Dict[str, Any]) -> Any:
-    filepath = item["file"]
-    file_url = item.get("file_url", filepath)
-    change_elements = [
-        render_change_as_html(change, filepath, 0, 2) for change in item["changes"]
-    ]
-    file_summary_element = E.A(filepath, href=file_url)
-    file_elements = [
-        E.B("Changes:"),
-        E.UL(*change_elements),
-    ]
-    file_elements_div = E.DIV(*file_elements)
-    file_details_element = E.DIV(
-        lxml.html.fromstring(
-            f"<details><summary>{lxml.html.tostring(file_summary_element).decode()}</summary>"
-            f"{lxml.html.tostring(file_elements_div).decode()}</details>"
+def generate_html_section_handler_github(
+    render_change: Callable[[Dict[str, Any], str, int, int], Optional[Any]]
+) -> Callable[[Any], Any]:
+    """
+    Generates a change wrapper, inside which contains a report on each
+    function or class depending on the compressed or full format.
+    """
+
+    def html_file_section_handler_github(item: Dict[str, Any]) -> Any:
+        filepath = item["file"]
+        file_url = item.get("file_url", filepath)
+        change_elements = [
+            render_change(change, filepath, 0, 2) for change in item["changes"]
+        ]
+        file_summary_element = E.A(filepath, href=file_url)
+        file_elements = [
+            E.B("Changes:"),
+            E.UL(*change_elements),
+        ]
+        file_elements_div = E.DIV(*file_elements)
+        file_details_element = E.DIV(
+            lxml.html.fromstring(
+                f"<details><summary>{lxml.html.tostring(file_summary_element).decode()}</summary>"
+                f"{lxml.html.tostring(file_elements_div).decode()}</details>"
+            )
         )
-    )
-    return file_details_element
+
+        return file_details_element
+
+    return html_file_section_handler_github
 
 
 def generate_render_html(
@@ -311,7 +364,12 @@ renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {
     "json": render_json,
     "yaml": render_yaml,
     "html": generate_render_html(html_file_section_handler_vanilla),
-    "html-github": generate_render_html(html_file_section_handler_github),
+    "html-github": generate_render_html(
+        generate_html_section_handler_github(render_change_as_html)
+    ),
+    "html-github-short": generate_render_html(
+        generate_html_section_handler_github(render_change_as_compressed_html)
+    ),
 }
 
 
