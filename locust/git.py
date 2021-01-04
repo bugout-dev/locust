@@ -19,6 +19,9 @@ class GitRepositoryNotFound(Exception):
     """
 
 
+NULL_REVISION = "null"
+
+
 def get_repository(path: str = ".") -> pygit2.Repository:
     """
     Returns a git repository object if it can find one at the given path, otherwise raises a
@@ -30,6 +33,18 @@ def get_repository(path: str = ".") -> pygit2.Repository:
     return pygit2.Repository(repository_path)
 
 
+def get_empty_tree_hash(repo: pygit2.Repository) -> str:
+    """
+    The hash for the empty tree can be generated using: `git hash-object -t tree /dev/null`
+    (see this Stack Overflow post for more details: https://stackoverflow.com/q/9765453)
+    We prefer to generate the empty hash using the pygit2 Repository's TreeBuilder, which avoids use
+    of the SHA-1 magic number: `4b825dc642cb6eb9a060e54bf8d69288fbee4904`.
+    This makes locust as future-compatible as pygit2.
+    """
+    tree_builder = repo.TreeBuilder()
+    return str(tree_builder.write())
+
+
 def get_patches(
     repository: pygit2.Repository,
     initial: Optional[str] = None,
@@ -39,7 +54,27 @@ def get_patches(
     Returns a list of patches taking the given repository from the initial revision to the terminal
     one.
     """
-    diff = repository.diff(a=initial, b=terminal, context_lines=0)
+    rev_initial = initial
+    rev_terminal = terminal
+    if rev_initial is None:
+        rev_initial = "HEAD"
+    elif initial == NULL_REVISION:
+        rev_initial = get_empty_tree_hash(repository)
+        if terminal is None:
+            rev_terminal = "HEAD"
+
+    if terminal == NULL_REVISION:
+        rev_terminal = get_empty_tree_hash(repository)
+
+    diff = repository.diff(a=rev_initial, b=rev_terminal, context_lines=0)
+
+    # We have to handle the case where initial=NULL_REVISION and terminal=None separately because of
+    # the lack of tracked file objects in the empty revision and how git handles the default empty
+    # argument for the terminal revision (checks against tracked files in initial revision).
+    if initial == NULL_REVISION and terminal is None:
+        status_diff = repository.diff()
+        diff.merge(status_diff)
+
     patches = [
         PatchInfo(
             old_file=patch.delta.old_file.path,
@@ -49,15 +84,15 @@ def get_patches(
         for patch in diff
     ]
 
-    rev_initial = initial
-    if rev_initial is None:
-        rev_initial = "HEAD"
-
     for patch in patches:
         old_filepath = os.path.join(repository.workdir, patch.old_file)
         new_filepath = os.path.join(repository.workdir, patch.new_file)
-        old_source = revision_file(repository, rev_initial, old_filepath)
-        new_source = revision_file(repository, terminal, new_filepath)
+        old_source = None
+        if initial != NULL_REVISION:
+            old_source = revision_file(repository, rev_initial, old_filepath)
+        new_source = None
+        if terminal != NULL_REVISION:
+            new_source = revision_file(repository, terminal, new_filepath)
         # The following awkward workaround is because mypy-protobuf has weird behaviour around
         # fields. They are defined as optional in the __init__ method of the message class, but not
         # optional as attributes of the message class.
@@ -182,7 +217,7 @@ def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
         "initial",
         nargs="?",
         default=None,
-        help="Initial git revision",
+        help='Initial git revision (to take diff against empty git tree, pass the value "null")',
     )
     parser.add_argument(
         "terminal",
@@ -195,12 +230,20 @@ def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
 def run(repo_dir: str, initial: Optional[str], terminal: Optional[str]) -> GitResult:
     repo = get_repository(repo_dir)
 
-    initial_ref = repo.revparse_single("HEAD").short_id
-    if initial is not None:
+    initial_ref: Optional[str] = None
+    if initial is None:
+        initial_ref = repo.revparse_single("HEAD").short_id
+    elif initial == NULL_REVISION:
+        initial_ref = NULL_REVISION
+    else:
         initial_ref = repo.revparse_single(initial).short_id
 
     terminal_ref = None
-    if terminal is not None:
+    if terminal is None:
+        pass
+    elif terminal == NULL_REVISION:
+        terminal_ref = NULL_REVISION
+    else:
         terminal_ref = repo.revparse_single(terminal).short_id
 
     patches = get_patches(repo, initial_ref, terminal_ref)
