@@ -89,6 +89,7 @@ function getDefinitions(source, sourceFilename) {
     var ast = parser.parse(source, {
         sourceFilename: sourceFilename,
         plugins: ["classPrivateMethods", "jsx", "typescript"],
+        sourceType: "unambiguous",
     });
     function processDeclaration(path, definitionType) {
         var _a, _b;
@@ -99,6 +100,18 @@ function getDefinitions(source, sourceFilename) {
         }
         else if (node.type === "ClassMethod") {
             idNode = node.key;
+        }
+        else if (node.type === "JSXElement") {
+            var jsxNameElement = node.openingElement.name;
+            if (jsxNameElement.type === "JSXMemberExpression") {
+                return;
+            }
+            else if (jsxNameElement.type === "JSXNamespacedName") {
+                idNode = jsxNameElement.name;
+            }
+            else {
+                idNode = jsxNameElement;
+            }
         }
         else {
             idNode = node.id;
@@ -154,6 +167,9 @@ function getDefinitions(source, sourceFilename) {
         ClassPrivateMethod: function (path) {
             processDeclaration(path, "method");
         },
+        JSXElement: function (path) {
+            processDeclaration(path, "component");
+        },
     });
     return definitions;
 }
@@ -169,7 +185,12 @@ function definitionsForPatch(patch) {
 exports.definitionsForPatch = definitionsForPatch;
 function definitionsByPatch(result) {
     return result.patches
-        .filter(function (patch) { return patch.new_file.split(".").pop() === "js"; })
+        .filter(function (patch) {
+        var fileExtension = patch.new_file.split(".").pop();
+        return (fileExtension === "js" ||
+            fileExtension === "jsx" ||
+            fileExtension === "ts");
+    })
         .map(function (patch) { return [patch, definitionsForPatch(patch)]; });
 }
 exports.definitionsByPatch = definitionsByPatch;
