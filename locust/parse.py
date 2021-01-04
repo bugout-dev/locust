@@ -27,7 +27,7 @@ class LocustVisitor(ast.NodeVisitor):
         self.scope: List[Tuple[str, int, Optional[int]]] = []
         self.definitions: List[RawDefinition] = []
 
-    def _visit_class_or_function_def(
+    def _visit_definition(
         self,
         node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
         def_type: str,
@@ -56,13 +56,13 @@ class LocustVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._visit_class_or_function_def(node, self.FUNCTION_DEF)
+        self._visit_definition(node, self.FUNCTION_DEF)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._visit_class_or_function_def(node, self.ASYNC_FUNCTION_DEF)
+        self._visit_definition(node, self.ASYNC_FUNCTION_DEF)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self._visit_class_or_function_def(node, self.CLASS_DEF)
+        self._visit_definition(node, self.CLASS_DEF)
 
     def reset(self):
         self.scope = []
