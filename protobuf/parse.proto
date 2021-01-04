@@ -4,6 +4,7 @@ package locust.parse;
 
 import "git.proto";
 
+// DefinitionParent represents a parent scope for a piece of Locust metadata.
 message DefinitionParent {
     string name = 1;
     int32 line = 2;

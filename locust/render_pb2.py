@@ -16,11 +16,11 @@ from . import parse_pb2 as parse__pb2
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='render.proto',
-  package='locust.parse',
+  package='locust.render',
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0crender.proto\x12\x0clocust.parse\x1a\x0bparse.proto\"J\n\x08IndexKey\x12\x10\n\x08\x66ilepath\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04line\x18\x03 \x01(\x05\x12\x10\n\x08revision\x18\x04 \x01(\t\"\x8d\x01\n\x0cNestedChange\x12#\n\x03key\x18\x01 \x01(\x0b\x32\x16.locust.parse.IndexKey\x12*\n\x06\x63hange\x18\x02 \x01(\x0b\x32\x1a.locust.parse.LocustChange\x12,\n\x08\x63hildren\x18\x03 \x03(\x0b\x32\x1a.locust.parse.NestedChangeb\x06proto3'
+  serialized_pb=b'\n\x0crender.proto\x12\rlocust.render\x1a\x0bparse.proto\"J\n\x08IndexKey\x12\x10\n\x08\x66ilepath\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04line\x18\x03 \x01(\x05\x12\x10\n\x08revision\x18\x04 \x01(\t\"\x8f\x01\n\x0cNestedChange\x12$\n\x03key\x18\x01 \x01(\x0b\x32\x17.locust.render.IndexKey\x12*\n\x06\x63hange\x18\x02 \x01(\x0b\x32\x1a.locust.parse.LocustChange\x12-\n\x08\x63hildren\x18\x03 \x03(\x0b\x32\x1b.locust.render.NestedChangeb\x06proto3'
   ,
   dependencies=[parse__pb2.DESCRIPTOR,])
 
@@ -29,35 +29,35 @@ DESCRIPTOR = _descriptor.FileDescriptor(
 
 _INDEXKEY = _descriptor.Descriptor(
   name='IndexKey',
-  full_name='locust.parse.IndexKey',
+  full_name='locust.render.IndexKey',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='filepath', full_name='locust.parse.IndexKey.filepath', index=0,
+      name='filepath', full_name='locust.render.IndexKey.filepath', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='name', full_name='locust.parse.IndexKey.name', index=1,
+      name='name', full_name='locust.render.IndexKey.name', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='line', full_name='locust.parse.IndexKey.line', index=2,
+      name='line', full_name='locust.render.IndexKey.line', index=2,
       number=3, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='revision', full_name='locust.parse.IndexKey.revision', index=3,
+      name='revision', full_name='locust.render.IndexKey.revision', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -75,35 +75,35 @@ _INDEXKEY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=43,
-  serialized_end=117,
+  serialized_start=44,
+  serialized_end=118,
 )
 
 
 _NESTEDCHANGE = _descriptor.Descriptor(
   name='NestedChange',
-  full_name='locust.parse.NestedChange',
+  full_name='locust.render.NestedChange',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='key', full_name='locust.parse.NestedChange.key', index=0,
+      name='key', full_name='locust.render.NestedChange.key', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='change', full_name='locust.parse.NestedChange.change', index=1,
+      name='change', full_name='locust.render.NestedChange.change', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='children', full_name='locust.parse.NestedChange.children', index=2,
+      name='children', full_name='locust.render.NestedChange.children', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -121,8 +121,8 @@ _NESTEDCHANGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=120,
-  serialized_end=261,
+  serialized_start=121,
+  serialized_end=264,
 )
 
 _NESTEDCHANGE.fields_by_name['key'].message_type = _INDEXKEY
@@ -135,14 +135,14 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 IndexKey = _reflection.GeneratedProtocolMessageType('IndexKey', (_message.Message,), {
   'DESCRIPTOR' : _INDEXKEY,
   '__module__' : 'render_pb2'
-  # @@protoc_insertion_point(class_scope:locust.parse.IndexKey)
+  # @@protoc_insertion_point(class_scope:locust.render.IndexKey)
   })
 _sym_db.RegisterMessage(IndexKey)
 
 NestedChange = _reflection.GeneratedProtocolMessageType('NestedChange', (_message.Message,), {
   'DESCRIPTOR' : _NESTEDCHANGE,
   '__module__' : 'render_pb2'
-  # @@protoc_insertion_point(class_scope:locust.parse.NestedChange)
+  # @@protoc_insertion_point(class_scope:locust.render.NestedChange)
   })
 _sym_db.RegisterMessage(NestedChange)
 
