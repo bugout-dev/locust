@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package locust.render;
+
+import "parse.proto";
+
+message IndexKey {
+    string filepath = 1;
+    string name = 2;
+    int32 line = 3;
+    string revision = 4;
+}
+
+message NestedChange {
+    IndexKey key = 1;
+    locust.parse.LocustChange change = 2;
+    repeated NestedChange children = 3;
+}

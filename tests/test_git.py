@@ -2,7 +2,9 @@ import json
 import os
 import unittest
 
-from locust import git
+from google.protobuf.json_format import MessageToDict
+
+from locust import git, git_pb2
 
 from . import config
 
@@ -25,6 +27,6 @@ class TestLocustGit(unittest.TestCase):
         expected_result_json = json.loads(expected_result_str)
 
         result = git.run(repo_dir, initial, terminal)
-        result_json = result.dict()
+        result_json = MessageToDict(result, preserving_proto_field_name=True)
 
         self.assertDictEqual(result_json, expected_result_json)

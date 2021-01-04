@@ -2,6 +2,8 @@ import json
 import os
 import unittest
 
+from google.protobuf.json_format import Parse
+
 from locust import parse, render
 
 from . import config
@@ -17,9 +19,7 @@ class TestLocustRender(unittest.TestCase):
             config.TESTS_DIR, "fixtures", "test_parse.json"
         )
         with open(test_input_fixture) as ifp:
-            test_input_object = json.load(ifp)
-
-        test_input = parse.RunResponse.parse_obj(test_input_object)
+            test_input = Parse(ifp.read(), parse.ParseResult())
 
         expected_result_fixture = os.path.join(
             config.TESTS_DIR, "fixtures", "test_render.json"

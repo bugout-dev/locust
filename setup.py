@@ -10,9 +10,9 @@ setup(
     name="bugout-locust",
     version=LOCUST_VERSION,
     packages=find_packages(),
-    install_requires=["pygit2", "PyYAML", "lxml", "pydantic"],
+    install_requires=["pygit2", "PyYAML", "lxml", "pydantic", "protobuf"],
     extras_require={
-        "dev": ["black", "mypy", "wheel"],
+        "dev": ["black", "mypy", "wheel", "mypy-protobuf"],
         "distribute": ["twine"],
     },
     description="Locust: Track changes to Python code across git refs",

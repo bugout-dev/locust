@@ -2,6 +2,8 @@ import json
 import os
 import unittest
 
+from google.protobuf.json_format import MessageToDict, Parse
+
 from locust import git, parse
 
 from . import config
@@ -20,8 +22,7 @@ class TestLocustParse(unittest.TestCase):
             test_input_str = repo_dir.join(
                 ifp.read().strip().split(config.REPO_DIR_TOKEN)
             )
-        test_input_object = json.loads(test_input_str)
-        test_input = git.RunResponse.parse_obj(test_input_object)
+        test_input = Parse(test_input_str, git.GitResult())
 
         expected_result_fixture = os.path.join(
             config.TESTS_DIR, "fixtures", "test_parse.json"
@@ -33,6 +34,6 @@ class TestLocustParse(unittest.TestCase):
         expected_result_json = json.loads(expected_result_str)
 
         result = parse.run(test_input, [])
-        result_json = result.dict()
+        result_json = MessageToDict(result, preserving_proto_field_name=True)
 
         self.assertDictEqual(result_json, expected_result_json)

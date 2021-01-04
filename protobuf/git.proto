@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package locust.git;
+
+message LineInfo {
+    int32 old_line_number = 1;
+    int32 new_line_number = 2;
+    string line_type = 3;
+    string line = 4;
+}
+
+message HunkBoundary {
+    int32 start = 1;
+    int32 end = 2;
+    string operation_type = 3;
+}
+
+message HunkInfo {
+    string header = 1;
+    repeated LineInfo lines = 2;
+    HunkBoundary total_boundary = 3;
+    HunkBoundary insertions_boundary = 4;
+    HunkBoundary deletions_boundary = 5;
+}
+
+message PatchInfo {
+    string old_file = 1;
+    string new_file = 2;
+    string old_source = 3;
+    string new_source = 4;
+    repeated HunkInfo hunks = 5;
+}
+
+message GitResult {
+    string repo = 1;
+    string initial_ref = 2;
+    string terminal_ref = 3;
+    repeated PatchInfo patches = 4;
+}

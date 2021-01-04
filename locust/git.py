@@ -7,50 +7,16 @@ import os
 import sys
 from typing import Any, List, Optional, Tuple
 
-from pydantic import BaseModel
+from google.protobuf.json_format import MessageToDict
 import pygit2
+
+from .git_pb2 import LineInfo, HunkBoundary, HunkInfo, PatchInfo, GitResult
 
 
 class GitRepositoryNotFound(Exception):
     """
     Raised when a git repository was not found where one was expected.
     """
-
-
-class LineInfo(BaseModel):
-    old_line_number: int
-    new_line_number: int
-    line_type: str
-    line: str
-
-
-class HunkBoundary(BaseModel):
-    operation_type: Optional[str] = None
-    start: int
-    end: int
-
-
-class HunkInfo(BaseModel):
-    header: str
-    lines: List[LineInfo]
-    total_boundary: Optional[HunkBoundary] = None
-    insertions_boundary: Optional[HunkBoundary] = None
-    deletions_boundary: Optional[HunkBoundary] = None
-
-
-class PatchInfo(BaseModel):
-    old_file: str
-    new_file: str
-    hunks: List[HunkInfo]
-    old_source: Optional[str] = None
-    new_source: Optional[str] = None
-
-
-class RunResponse(BaseModel):
-    repo: str
-    initial_ref: str
-    terminal_ref: Optional[str]
-    patches: List[PatchInfo]
 
 
 def get_repository(path: str = ".") -> pygit2.Repository:
@@ -90,14 +56,15 @@ def get_patches(
     for patch in patches:
         old_filepath = os.path.join(repository.workdir, patch.old_file)
         new_filepath = os.path.join(repository.workdir, patch.new_file)
-        try:
-            patch.old_source = revision_file(repository, rev_initial, old_filepath)
-        except:
-            pass
-        try:
-            patch.new_source = revision_file(repository, terminal, new_filepath)
-        except:
-            pass
+        old_source = revision_file(repository, rev_initial, old_filepath)
+        new_source = revision_file(repository, terminal, new_filepath)
+        # The following awkward workaround is because mypy-protobuf has weird behaviour around
+        # fields. They are defined as optional in the __init__ method of the message class, but not
+        # optional as attributes of the message class.
+        if old_source is not None:
+            patch.old_source = old_source
+        if new_source is not None:
+            patch.new_source = new_source
 
     return patches
 
@@ -134,7 +101,7 @@ def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
     """
     Processes a hunk from a git diff into a HunkInfo object.
     """
-    hunk = HunkInfo(
+    pre_hunk_info = HunkInfo(
         header=hunk.header,
         lines=[
             LineInfo(
@@ -147,11 +114,19 @@ def process_hunk(hunk: pygit2.DiffHunk) -> HunkInfo:
         ],
     )
 
-    hunk.total_boundary = hunk_boundary(hunk, None)
-    hunk.insertions_boundary = hunk_boundary(hunk, "+")
-    hunk.deletions_boundary = hunk_boundary(hunk, "-")
+    total_boundary = hunk_boundary(pre_hunk_info, None)
+    insertions_boundary = hunk_boundary(pre_hunk_info, "+")
+    deletions_boundary = hunk_boundary(pre_hunk_info, "-")
 
-    return hunk
+    hunk_info = HunkInfo(
+        header=pre_hunk_info.header,
+        lines=pre_hunk_info.lines,
+        total_boundary=total_boundary,
+        insertions_boundary=insertions_boundary,
+        deletions_boundary=deletions_boundary,
+    )
+
+    return hunk_info
 
 
 def revision_file(
@@ -217,7 +192,7 @@ def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def run(repo_dir: str, initial: Optional[str], terminal: Optional[str]) -> RunResponse:
+def run(repo_dir: str, initial: Optional[str], terminal: Optional[str]) -> GitResult:
     repo = get_repository(repo_dir)
 
     initial_ref = repo.revparse_single("HEAD").short_id
@@ -229,7 +204,7 @@ def run(repo_dir: str, initial: Optional[str], terminal: Optional[str]) -> RunRe
         terminal_ref = repo.revparse_single(terminal).short_id
 
     patches = get_patches(repo, initial_ref, terminal_ref)
-    response = RunResponse(
+    response = GitResult(
         repo=os.path.normpath(repo.workdir),
         initial_ref=initial_ref,
         terminal_ref=terminal_ref,
@@ -259,7 +234,8 @@ def main():
 
     try:
         with args.output as ofp:
-            print(response.json(), file=ofp)
+            response_dict = MessageToDict(response, preserving_proto_field_name=True)
+            print(json.dumps(response_dict), file=ofp)
     except BrokenPipeError:
         pass
 
