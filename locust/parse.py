@@ -20,6 +20,7 @@ from .parse_pb2 import RawDefinition, LocustChange, ParseResult, DefinitionParen
 
 
 class ContextType(Enum):
+    UNKNOWN = "unknown"
     FUNCTION_DEF = "function"
     ASYNC_FUNCTION_DEF = "async_function"
     CLASS_DEF = "class"
@@ -30,7 +31,7 @@ class LocustVisitor(ast.NodeVisitor):
     def __init__(self):
         self.scope: List[Tuple[str, int, Optional[int]]] = []
         self.definitions: List[RawDefinition] = []
-        self.current_symbol: Optional[str] = None
+        self.context_type: ContextType = ContextType.UNKNOWN
 
     def _prune_scope(self, lineno: int) -> None:
         self.scope = [
@@ -49,7 +50,6 @@ class LocustVisitor(ast.NodeVisitor):
     def _visit_class_or_function_def(
         self,
         node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
-        def_type: ContextType,
     ) -> None:
         self._prune_scope(node.lineno)
         self.scope.append((node.name, node.lineno, node.end_lineno))
@@ -58,7 +58,7 @@ class LocustVisitor(ast.NodeVisitor):
         self.definitions.append(
             RawDefinition(
                 name=".".join([spec[0] for spec in self.scope]),
-                change_type=def_type.value,
+                change_type=self.context_type.value,
                 line=node.lineno,
                 offset=node.col_offset,
                 end_line=node.end_lineno,
@@ -69,21 +69,25 @@ class LocustVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._visit_class_or_function_def(node, ContextType.FUNCTION_DEF)
+        self.context_type = ContextType.FUNCTION_DEF
+        self._visit_class_or_function_def(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._visit_class_or_function_def(node, ContextType.ASYNC_FUNCTION_DEF)
+        self.context_type = ContextType.ASYNC_FUNCTION_DEF
+        self._visit_class_or_function_def(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self._visit_class_or_function_def(node, ContextType.CLASS_DEF)
+        self.context_type = ContextType.CLASS_DEF
+        self._visit_class_or_function_def(node)
 
     def visit_Import(self, node: ast.Import) -> None:
+        self.context_type = ContextType.DEPENDENCY
         self._prune_scope(node.lineno)
         parent = self._current_scope_parent()
         for alias in node.names:
             definition = RawDefinition(
                 name=alias.name,
-                change_type=ContextType.DEPENDENCY.value,
+                change_type=self.context_type.value,
                 line=node.lineno,
                 offset=node.col_offset,
                 end_line=node.end_lineno,
@@ -95,6 +99,7 @@ class LocustVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        self.context_type = ContextType.DEPENDENCY
         self._prune_scope(node.lineno)
         parent = self._current_scope_parent()
         module_name = node.module
@@ -103,7 +108,7 @@ class LocustVisitor(ast.NodeVisitor):
         for alias in node.names:
             definition = RawDefinition(
                 name=f"{import_prefix}.{alias.name}",
-                change_type=ContextType.DEPENDENCY.value,
+                change_type=self.context_type.value,
                 line=node.lineno,
                 offset=node.col_offset,
                 end_line=node.end_lineno,
