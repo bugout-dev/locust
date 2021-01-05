@@ -1,0 +1,273 @@
+{
+  "repo": "#repo_dir#",
+  "initial_ref": "null",
+  "terminal_ref": "04cec01",
+  "patches": [
+    {
+      "old_file": "LICENSE",
+      "new_file": "LICENSE",
+      "new_source": "MIT License\n\nCopyright (c) 2020 Bugout.dev\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
+      "hunks": [
+        {
+          "header": "@@ -0,0 +1,21 @@\n",
+          "lines": [
+            {
+              "old_line_number": -1,
+              "new_line_number": 1,
+              "line_type": "+",
+              "line": "MIT License\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 2,
+              "line_type": "+",
+              "line": "\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 3,
+              "line_type": "+",
+              "line": "Copyright (c) 2020 Bugout.dev\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 4,
+              "line_type": "+",
+              "line": "\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 5,
+              "line_type": "+",
+              "line": "Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 6,
+              "line_type": "+",
+              "line": "of this software and associated documentation files (the \"Software\"), to deal\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 7,
+              "line_type": "+",
+              "line": "in the Software without restriction, including without limitation the rights\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 8,
+              "line_type": "+",
+              "line": "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 9,
+              "line_type": "+",
+              "line": "copies of the Software, and to permit persons to whom the Software is\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 10,
+              "line_type": "+",
+              "line": "furnished to do so, subject to the following conditions:\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 11,
+              "line_type": "+",
+              "line": "\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 12,
+              "line_type": "+",
+              "line": "The above copyright notice and this permission notice shall be included in all\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 13,
+              "line_type": "+",
+              "line": "copies or substantial portions of the Software.\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 14,
+              "line_type": "+",
+              "line": "\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 15,
+              "line_type": "+",
+              "line": "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 16,
+              "line_type": "+",
+              "line": "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 17,
+              "line_type": "+",
+              "line": "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 18,
+              "line_type": "+",
+              "line": "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 19,
+              "line_type": "+",
+              "line": "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 20,
+              "line_type": "+",
+              "line": "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 21,
+              "line_type": "+",
+              "line": "SOFTWARE.\n"
+            }
+          ],
+          "total_boundary": {
+            "start": 1,
+            "end": 21
+          },
+          "insertions_boundary": {
+            "start": 1,
+            "end": 21,
+            "operation_type": "+"
+          }
+        }
+      ]
+    },
+    {
+      "old_file": "README.md",
+      "new_file": "README.md",
+      "new_source": "# locust-test-cases\nTest cases for Locust (https://github.com/simiotics/locust)\n",
+      "hunks": [
+        {
+          "header": "@@ -0,0 +1,2 @@\n",
+          "lines": [
+            {
+              "old_line_number": -1,
+              "new_line_number": 1,
+              "line_type": "+",
+              "line": "# locust-test-cases\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 2,
+              "line_type": "+",
+              "line": "Test cases for Locust (https://github.com/simiotics/locust)\n"
+            }
+          ],
+          "total_boundary": {
+            "start": 1,
+            "end": 2
+          },
+          "insertions_boundary": {
+            "start": 1,
+            "end": 2,
+            "operation_type": "+"
+          }
+        }
+      ]
+    },
+    {
+      "old_file": "mod/__init__.py",
+      "new_file": "mod/__init__.py"
+    },
+    {
+      "old_file": "mod/submod/__init__.py",
+      "new_file": "mod/submod/__init__.py"
+    },
+    {
+      "old_file": "mod/submod/print.py",
+      "new_file": "mod/submod/print.py",
+      "new_source": "import json\nfrom pprint import pprint\nfrom ..value import VALUE\n\npprint(json.dumps({\"value\": VALUE}))\n",
+      "hunks": [
+        {
+          "header": "@@ -0,0 +1,5 @@\n",
+          "lines": [
+            {
+              "old_line_number": -1,
+              "new_line_number": 1,
+              "line_type": "+",
+              "line": "import json\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 2,
+              "line_type": "+",
+              "line": "from pprint import pprint\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 3,
+              "line_type": "+",
+              "line": "from ..value import VALUE\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 4,
+              "line_type": "+",
+              "line": "\n"
+            },
+            {
+              "old_line_number": -1,
+              "new_line_number": 5,
+              "line_type": "+",
+              "line": "pprint(json.dumps({\"value\": VALUE}))\n"
+            }
+          ],
+          "total_boundary": {
+            "start": 1,
+            "end": 5
+          },
+          "insertions_boundary": {
+            "start": 1,
+            "end": 5,
+            "operation_type": "+"
+          }
+        }
+      ]
+    },
+    {
+      "old_file": "mod/value.py",
+      "new_file": "mod/value.py",
+      "new_source": "VALUE = 42\n",
+      "hunks": [
+        {
+          "header": "@@ -0,0 +1 @@\n",
+          "lines": [
+            {
+              "old_line_number": -1,
+              "new_line_number": 1,
+              "line_type": "+",
+              "line": "VALUE = 42\n"
+            }
+          ],
+          "total_boundary": {
+            "start": 1,
+            "end": 1
+          },
+          "insertions_boundary": {
+            "start": 1,
+            "end": 1,
+            "operation_type": "+"
+          }
+        }
+      ]
+    }
+  ]
+}

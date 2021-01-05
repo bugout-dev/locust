@@ -90,6 +90,26 @@ class LocustVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        self._prune_scope(node.lineno)
+        parent = self._current_scope_parent()
+        module_name = node.module
+        dots = "" if not node.level else "." * node.level
+        import_prefix = f"{dots}{module_name}"
+        for alias in node.names:
+            definition = RawDefinition(
+                name=f"{import_prefix}.{alias.name}",
+                change_type=self.DEPENDENCY_DEF,
+                line=node.lineno,
+                offset=node.col_offset,
+                end_line=node.end_lineno,
+                end_offset=node.end_col_offset,
+                parent=parent,
+            )
+            self.definitions.append(definition)
+
+        self.generic_visit(node)
+
     def reset(self):
         self.scope = []
         self.definitions = []
