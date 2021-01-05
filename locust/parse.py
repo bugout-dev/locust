@@ -3,6 +3,7 @@ AST-related functionality
 """
 import argparse
 import ast
+from dataclasses import dataclass, field
 from enum import Enum
 import json
 import os
@@ -25,25 +26,36 @@ class ContextType(Enum):
     ASYNC_FUNCTION_DEF = "async_function"
     CLASS_DEF = "class"
     DEPENDENCY = "dependency"
+    SYMBOL = "symbol"
+
+
+@dataclass
+class Scope:
+    name: str
+    lineno: int
+    end_lineno: Optional[int] = None
+    symbols: Dict[str, str] = field(default_factory=dict)
 
 
 class LocustVisitor(ast.NodeVisitor):
     def __init__(self):
-        self.scope: List[Tuple[str, int, Optional[int]]] = []
+        self.scope: List[Scope] = []
         self.definitions: List[RawDefinition] = []
         self.context_type: ContextType = ContextType.UNKNOWN
 
     def _prune_scope(self, lineno: int) -> None:
         self.scope = [
-            spec for spec in self.scope if spec[2] is not None and spec[2] > lineno
+            spec
+            for spec in self.scope
+            if spec.end_lineno is not None and spec.end_lineno > lineno
         ]
 
     def _current_scope_parent(self) -> Optional[DefinitionParent]:
         parent: Optional[DefinitionParent] = None
         if len(self.scope) > 1:
             parent = DefinitionParent(
-                name=".".join([spec[0] for spec in self.scope[:-1]]),
-                line=self.scope[-2][1],
+                name=".".join([spec.name for spec in self.scope[:-1]]),
+                line=self.scope[-2].lineno,
             )
         return parent
 
@@ -52,12 +64,14 @@ class LocustVisitor(ast.NodeVisitor):
         node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
     ) -> None:
         self._prune_scope(node.lineno)
-        self.scope.append((node.name, node.lineno, node.end_lineno))
+        self.scope.append(
+            Scope(name=node.name, lineno=node.lineno, end_lineno=node.end_lineno)
+        )
         parent = self._current_scope_parent()
 
         self.definitions.append(
             RawDefinition(
-                name=".".join([spec[0] for spec in self.scope]),
+                name=".".join([spec.name for spec in self.scope]),
                 change_type=self.context_type.value,
                 line=node.lineno,
                 offset=node.col_offset,
@@ -85,6 +99,7 @@ class LocustVisitor(ast.NodeVisitor):
         self._prune_scope(node.lineno)
         parent = self._current_scope_parent()
         for alias in node.names:
+            signifier = alias.asname if alias.asname is not None else alias.name
             definition = RawDefinition(
                 name=alias.name,
                 change_type=self.context_type.value,
@@ -118,6 +133,9 @@ class LocustVisitor(ast.NodeVisitor):
             self.definitions.append(definition)
 
         self.generic_visit(node)
+
+    # def visit_Name(self, node: ast.Name) -> None:
+    #     self.context_type = ContextType.SYMBOL
 
     def reset(self):
         self.scope = []
