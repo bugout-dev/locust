@@ -10,6 +10,8 @@ from . import config
 
 
 class TestLocustRender(unittest.TestCase):
+    maxDiff = None
+
     def test_render_run(self):
         repo_dir = config.TESTCASES_DIR
         initial = f"{config.TESTCASES_REMOTE}/test_git_initial"
@@ -25,8 +27,8 @@ class TestLocustRender(unittest.TestCase):
             config.TESTS_DIR, "fixtures", "test_render.json"
         )
         with open(expected_result_fixture) as ifp:
-            expected_result = ifp.read().strip()
+            expected_result = json.load(ifp)
 
-        result = render.run(test_input, "json", None)
+        result = json.loads(render.run(test_input, "json", None))
 
-        self.assertEqual(result, expected_result)
+        self.assertDictEqual(result, expected_result)

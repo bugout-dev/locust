@@ -22,26 +22,35 @@ class LocustVisitor(ast.NodeVisitor):
     FUNCTION_DEF = "function"
     ASYNC_FUNCTION_DEF = "async_function"
     CLASS_DEF = "class"
+    DEPENDENCY_DEF = "dependency"
 
     def __init__(self):
         self.scope: List[Tuple[str, int, Optional[int]]] = []
         self.definitions: List[RawDefinition] = []
 
-    def _visit_class_or_function_def(
-        self,
-        node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
-        def_type: str,
-    ) -> None:
+    def _prune_scope(self, lineno: int) -> None:
         self.scope = [
-            spec for spec in self.scope if spec[2] is not None and spec[2] > node.lineno
+            spec for spec in self.scope if spec[2] is not None and spec[2] > lineno
         ]
-        self.scope.append((node.name, node.lineno, node.end_lineno))
+
+    def _current_scope_parent(self) -> Optional[DefinitionParent]:
         parent: Optional[DefinitionParent] = None
         if len(self.scope) > 1:
             parent = DefinitionParent(
                 name=".".join([spec[0] for spec in self.scope[:-1]]),
                 line=self.scope[-2][1],
             )
+        return parent
+
+    def _visit_class_or_function_def(
+        self,
+        node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
+        def_type: str,
+    ) -> None:
+        self._prune_scope(node.lineno)
+        self.scope.append((node.name, node.lineno, node.end_lineno))
+        parent = self._current_scope_parent()
+
         self.definitions.append(
             RawDefinition(
                 name=".".join([spec[0] for spec in self.scope]),
@@ -63,6 +72,43 @@ class LocustVisitor(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self._visit_class_or_function_def(node, self.CLASS_DEF)
+
+    def visit_Import(self, node: ast.Import) -> None:
+        self._prune_scope(node.lineno)
+        parent = self._current_scope_parent()
+        for alias in node.names:
+            definition = RawDefinition(
+                name=alias.name,
+                change_type=self.DEPENDENCY_DEF,
+                line=node.lineno,
+                offset=node.col_offset,
+                end_line=node.end_lineno,
+                end_offset=node.end_col_offset,
+                parent=parent,
+            )
+            self.definitions.append(definition)
+
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        self._prune_scope(node.lineno)
+        parent = self._current_scope_parent()
+        module_name = node.module
+        dots = "" if not node.level else "." * node.level
+        import_prefix = f"{dots}{module_name}"
+        for alias in node.names:
+            definition = RawDefinition(
+                name=f"{import_prefix}.{alias.name}",
+                change_type=self.DEPENDENCY_DEF,
+                line=node.lineno,
+                offset=node.col_offset,
+                end_line=node.end_lineno,
+                end_offset=node.end_col_offset,
+                parent=parent,
+            )
+            self.definitions.append(definition)
+
+        self.generic_visit(node)
 
     def reset(self):
         self.scope = []
