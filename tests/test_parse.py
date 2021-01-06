@@ -14,9 +14,6 @@ class TestLocustParse(unittest.TestCase):
 
     def test_parse_run(self):
         repo_dir = config.TESTCASES_DIR
-        initial = f"{config.TESTCASES_REMOTE}/test_git_initial"
-        terminal = f"{config.TESTCASES_REMOTE}/test_git_terminal"
-
         test_input_fixture = os.path.join(config.TESTS_DIR, "fixtures", "test_git.json")
         with open(test_input_fixture) as ifp:
             test_input_str = repo_dir.join(
@@ -40,9 +37,6 @@ class TestLocustParse(unittest.TestCase):
 
     def test_parse_dependencies(self):
         repo_dir = config.TESTCASES_DIR
-        initial = "null"
-        terminal = f"{config.TESTCASES_REMOTE}/test_py_import_from"
-
         test_input_fixture = os.path.join(
             config.TESTS_DIR, "fixtures", "test_git_dependencies.json"
         )

@@ -125,6 +125,16 @@
       "changed_lines": 1,
       "total_lines": 2,
       "parent": {}
+    },
+    {
+      "name": "argparse",
+      "change_type": "usage",
+      "filepath": "sample.py",
+      "revision": "0838585",
+      "line": 7,
+      "changed_lines": 1,
+      "total_lines": 1,
+      "parent": {}
     }
   ]
 }
