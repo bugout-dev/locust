@@ -38,7 +38,7 @@ class Scope:
     name: str
     lineno: int
     end_lineno: Optional[int] = None
-    # Symbols is an association of symbols to possible qualifications. The values are lists because
+    # symbols is an association of symbols to possible qualifications. The values are lists because
     # it is possible that some symbols can only be correctly qualified at runtime (e.g. because of
     # conditional imports).
     symbols: Dict[str, List[str]] = field(default_factory=dict)
