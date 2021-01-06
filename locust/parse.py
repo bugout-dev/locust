@@ -20,13 +20,17 @@ from . import git
 from .parse_pb2 import RawDefinition, LocustChange, ParseResult, DefinitionParent
 
 
+class LocustASTTraversalError(Exception):
+    pass
+
+
 class ContextType(Enum):
     UNKNOWN = "unknown"
     FUNCTION_DEF = "function"
     ASYNC_FUNCTION_DEF = "async_function"
     CLASS_DEF = "class"
     DEPENDENCY = "dependency"
-    SYMBOL = "symbol"
+    USAGE = "usage"
 
 
 @dataclass
@@ -34,7 +38,10 @@ class Scope:
     name: str
     lineno: int
     end_lineno: Optional[int] = None
-    symbols: Dict[str, str] = field(default_factory=dict)
+    # Symbols is an association of symbols to possible qualifications. The values are lists because
+    # it is possible that some symbols can only be correctly qualified at runtime (e.g. because of
+    # conditional imports).
+    symbols: Dict[str, List[str]] = field(default_factory=dict)
 
 
 class LocustVisitor(ast.NodeVisitor):
@@ -42,6 +49,21 @@ class LocustVisitor(ast.NodeVisitor):
         self.scope: List[Scope] = []
         self.definitions: List[RawDefinition] = []
         self.context_type: ContextType = ContextType.UNKNOWN
+        self.global_symbols: Dict[str, List[str]] = {}
+
+    def _current_symbols(self) -> Dict[str, List[str]]:
+        if self.scope:
+            return self.scope[-1].symbols
+        return self.global_symbols
+
+    def _add_symbol_qualification(self, symbol: str, qualification: str) -> None:
+        symbols = self.global_symbols
+        if self.scope:
+            symbols = self.scope[-1].symbols
+
+        if symbols.get(symbol) is None:
+            symbols[symbol] = []
+        symbols[symbol].append(qualification)
 
     def _prune_scope(self, lineno: int) -> None:
         self.scope = [
@@ -65,7 +87,12 @@ class LocustVisitor(ast.NodeVisitor):
     ) -> None:
         self._prune_scope(node.lineno)
         self.scope.append(
-            Scope(name=node.name, lineno=node.lineno, end_lineno=node.end_lineno)
+            Scope(
+                name=node.name,
+                lineno=node.lineno,
+                end_lineno=node.end_lineno,
+                symbols=self._current_symbols(),
+            )
         )
         parent = self._current_scope_parent()
 
@@ -100,6 +127,7 @@ class LocustVisitor(ast.NodeVisitor):
         parent = self._current_scope_parent()
         for alias in node.names:
             signifier = alias.asname if alias.asname is not None else alias.name
+            self._add_symbol_qualification(signifier, alias.name)
             definition = RawDefinition(
                 name=alias.name,
                 change_type=self.context_type.value,
@@ -121,8 +149,13 @@ class LocustVisitor(ast.NodeVisitor):
         dots = "" if not node.level else "." * node.level
         import_prefix = f"{dots}{module_name}"
         for alias in node.names:
+            if alias.name == "*":
+                continue
+            signifier = alias.asname if alias.asname is not None else alias.name
+            qualified_name = f"{import_prefix}.{alias.name}"
+            self._add_symbol_qualification(signifier, qualified_name)
             definition = RawDefinition(
-                name=f"{import_prefix}.{alias.name}",
+                name=qualified_name,
                 change_type=self.context_type.value,
                 line=node.lineno,
                 offset=node.col_offset,
@@ -134,8 +167,61 @@ class LocustVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
-    # def visit_Name(self, node: ast.Name) -> None:
-    #     self.context_type = ContextType.SYMBOL
+    def visit_Name(self, node: ast.Name) -> None:
+        self.context_type = ContextType.USAGE
+        symbols = self._current_symbols()
+        qualifications = symbols.get(node.id)
+        if qualifications:
+            parent = self._current_scope_parent()
+            for qualification in qualifications:
+                definition = RawDefinition(
+                    name=qualification,
+                    change_type=self.context_type.value,
+                    line=node.lineno,
+                    offset=node.col_offset,
+                    end_line=node.end_lineno,
+                    end_offset=node.end_col_offset,
+                    parent=parent,
+                )
+                self.definitions.append(definition)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        self.context_type = ContextType.USAGE
+        # Components of the symbol, from right to left.
+        components = [node.attr]
+        current = node.value
+        done = False
+        while not done:
+            if isinstance(current, ast.Name):
+                components.append(current.id)
+                done = True
+            elif isinstance(current, ast.Attribute):
+                components.append(current.attr)
+                current = current.value
+            else:
+                raise LocustASTTraversalError(
+                    f"Could not process attribute component: {current}"
+                )
+        components.reverse()
+        cumulative_components = [
+            ".".join(components[: i + 1]) for i in range(len(components))
+        ]
+        symbols = self._current_symbols()
+        parent = self._current_scope_parent()
+        for cumulative_component in cumulative_components:
+            qualifications = symbols.get(cumulative_component)
+            if qualifications:
+                for qualification in qualifications:
+                    definition = RawDefinition(
+                        name=qualification,
+                        change_type=self.context_type.value,
+                        line=node.lineno,
+                        offset=node.col_offset,
+                        end_line=node.end_lineno,
+                        end_offset=node.end_col_offset,
+                        parent=parent,
+                    )
+                    self.definitions.append(definition)
 
     def reset(self):
         self.scope = []

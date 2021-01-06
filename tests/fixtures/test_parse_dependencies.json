@@ -1,5 +1,5 @@
 {
-  "repo": "/home/neeraj/bugout/locust-test-cases",
+  "repo": "#repo_dir#",
   "initial_ref": "null",
   "terminal_ref": "04cec01",
   "patches": [
@@ -297,6 +297,36 @@
       "filepath": "mod/submod/print.py",
       "revision": "04cec01",
       "line": 3,
+      "changed_lines": 1,
+      "total_lines": 1,
+      "parent": {}
+    },
+    {
+      "name": "pprint.pprint",
+      "change_type": "usage",
+      "filepath": "mod/submod/print.py",
+      "revision": "04cec01",
+      "line": 5,
+      "changed_lines": 1,
+      "total_lines": 1,
+      "parent": {}
+    },
+    {
+      "name": "json",
+      "change_type": "usage",
+      "filepath": "mod/submod/print.py",
+      "revision": "04cec01",
+      "line": 5,
+      "changed_lines": 1,
+      "total_lines": 1,
+      "parent": {}
+    },
+    {
+      "name": "..value.VALUE",
+      "change_type": "usage",
+      "filepath": "mod/submod/print.py",
+      "revision": "04cec01",
+      "line": 5,
       "changed_lines": 1,
       "total_lines": 1,
       "parent": {}
