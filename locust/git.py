@@ -201,7 +201,7 @@ def revision_file(
                 return None
         content = current_tree.data
 
-    return content.decode()
+    return content.decode(errors="ignore")
 
 
 def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
