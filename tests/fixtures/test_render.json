@@ -1,1 +1,37 @@
-{"locust": [{"file": "sample.py", "changes": [{"name": "hello", "type": "function", "line": 3, "changed_lines": 1, "total_lines": 2, "children": []}]}], "refs": {"initial": "3b34883", "terminal": "0838585"}}
+{
+  "locust": [
+    {
+      "file": "sample.py",
+      "changes": [
+        {
+          "name": "argparse",
+          "type": "dependency",
+          "line": 1,
+          "changed_lines": 1,
+          "total_lines": 1,
+          "children": []
+        },
+        {
+          "name": "hello",
+          "type": "function",
+          "line": 3,
+          "changed_lines": 1,
+          "total_lines": 2,
+          "children": []
+        },
+        {
+          "name": "argparse",
+          "type": "usage",
+          "line": 7,
+          "changed_lines": 1,
+          "total_lines": 1,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "refs": {
+    "initial": "3b34883",
+    "terminal": "0838585"
+  }
+}

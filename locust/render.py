@@ -7,73 +7,89 @@ import json
 import os
 import sys
 import textwrap
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
+from google.protobuf.json_format import Parse
 import lxml
 from lxml.html import builder as E
-from pydantic import BaseModel
 import yaml
 
 from . import parse
+from .render_pb2 import IndexKey, NestedChange
 
-IndexKey = Tuple[str, Optional[str], str, int]
-
-
-class NestedChange(BaseModel):
-    key: IndexKey
-    change: parse.LocustChange
-    children: List["NestedChange"]
+SerializedIndexKey = Tuple[str, Optional[str], str, int]
 
 
-NestedChange.update_forward_refs()
+def serialize_index_key(index_key: IndexKey) -> SerializedIndexKey:
+    return (index_key.filepath, index_key.revision, index_key.name, index_key.line)
+
+
+def deserialize_index_key(serialized_index_key: SerializedIndexKey) -> IndexKey:
+    filepath, maybe_revision, name, line = serialized_index_key
+    return IndexKey(filepath=filepath, revision=maybe_revision, name=name, line=line)
 
 
 def get_key(change: parse.LocustChange) -> IndexKey:
-    return (change.filepath, change.revision, change.name, change.line)
+    return IndexKey(
+        filepath=change.filepath,
+        revision=change.revision,
+        name=change.name,
+        line=change.line,
+    )
 
 
 def parent_key(change: parse.LocustChange) -> Optional[IndexKey]:
     if change.parent is None:
         return None
-    return (
-        change.filepath,
-        change.revision,
-        change.parent[0],
-        change.parent[1],
+    return IndexKey(
+        filepath=change.filepath,
+        revision=change.revision,
+        name=change.parent.name,
+        line=change.parent.line,
     )
 
 
 def nest_results(
-    changes: List[parse.LocustChange],
+    changes: Iterable[parse.LocustChange],
 ) -> Dict[str, List[NestedChange]]:
     results: Dict[str, List[NestedChange]] = {}
-    index: Dict[IndexKey, parse.LocustChange] = {
-        get_key(change): change for change in changes
+    index: Dict[SerializedIndexKey, parse.LocustChange] = {
+        serialize_index_key(get_key(change)): change for change in changes
     }
 
-    children: Dict[IndexKey, List[IndexKey]] = {key: [] for key in index}
+    children: Dict[SerializedIndexKey, List[SerializedIndexKey]] = {
+        key: [] for key in index
+    }
 
     for change in changes:
         change_parent = parent_key(change)
-        if change_parent:
-            children[change_parent].append(get_key(change))
+        if change_parent and change_parent.name:
+            children[serialize_index_key(change_parent)].append(
+                serialize_index_key(get_key(change))
+            )
 
     nested_results: Dict[str, List[NestedChange]] = {}
     keys_to_process = sorted(
         [k for k in index], key=lambda k: len(children[k]), reverse=True
     )
-    visited_keys: Set[IndexKey] = set()
+    visited_keys: Set[SerializedIndexKey] = set()
 
-    def process_change(change_key: IndexKey, visited: Set[IndexKey]) -> NestedChange:
+    def process_change(
+        change_key: SerializedIndexKey, visited: Set[SerializedIndexKey]
+    ) -> NestedChange:
         visited.add(change_key)
         if not children[change_key]:
-            return NestedChange(key=change_key, change=index[change_key], children=[])
+            return NestedChange(
+                key=deserialize_index_key(change_key),
+                change=index[change_key],
+                children=[],
+            )
 
         change_children = [
             process_change(child_key, visited) for child_key in children[change_key]
         ]
         return NestedChange(
-            key=change_key,
+            key=deserialize_index_key(change_key),
             change=index[change_key],
             children=change_children,
         )
@@ -90,17 +106,6 @@ def nest_results(
         results[change.filepath].append(nested_change)
 
     return results
-
-
-def repo_relative_filepath(
-    repo_dir: str, change: parse.LocustChange
-) -> parse.LocustChange:
-    """
-    Changes the filepath on a LocustChange so that it is relative to the repo directory.
-    """
-    updated_change = copy.copy(change)
-    updated_change.filepath = os.path.relpath(change.filepath, start=repo_dir)
-    return updated_change
 
 
 def nested_change_to_dict(nested_change: NestedChange) -> Dict[str, Any]:
@@ -405,17 +410,13 @@ def populate_argument_parser(parser: argparse.ArgumentParser) -> None:
 
 
 def run(
-    parse_result: parse.RunResponse,
+    parse_result: parse.ParseResult,
     render_format: str,
     github_url: Optional[str],
     additional_metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
-    normalized_changes = [
-        repo_relative_filepath(parse_result.repo, change)
-        for change in parse_result.changes
-    ]
-
-    nested_results = nest_results(normalized_changes)
+    changes = parse_result.changes
+    nested_results = nest_results(changes)
     results = results_dict(nested_results)
     results = enrich_with_refs(
         results, parse_result.initial_ref, parse_result.terminal_ref
@@ -452,8 +453,7 @@ def main():
     args = parser.parse_args()
 
     with args.input as ifp:
-        parse_result_json = json.load(ifp)
-        parse_result = parse.RunResponse.parse_obj(parse_result_json)
+        parse_result = Parse(ifp.read(), parse.ParseResult())
 
     summary = run(parse_result, args.format, args.github, args.metadata)
 

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package locust.parse;
+
+import "git.proto";
+
+// DefinitionParent represents a parent scope for a piece of Locust metadata.
+message DefinitionParent {
+    string name = 1;
+    int32 line = 2;
+}
+
+message RawDefinition {
+    string name = 1;
+    string change_type = 2;
+    int32 line = 3;
+    int32 offset = 4;
+    int32 end_line = 5;
+    int32 end_offset = 6;
+    DefinitionParent parent = 7;
+}
+
+message LocustChange {
+    string name = 1;
+    string change_type = 2;
+    string filepath = 3;
+    string revision = 4;
+    int32 line = 5;
+    int32 changed_lines = 6;
+    int32 total_lines = 7;
+    DefinitionParent parent = 8;
+}
+
+message ParseResult {
+    string repo = 1;
+    string initial_ref = 2;
+    string terminal_ref = 3;
+    repeated locust.git.PatchInfo patches = 4;
+    repeated LocustChange changes = 5;
+}
