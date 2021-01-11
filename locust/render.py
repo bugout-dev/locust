@@ -153,19 +153,12 @@ def render_yaml(results: Dict[str, Any]) -> str:
     return yaml.dump(results, sort_keys=False)
 
 
-def render_change_as_html(
-    change: Dict[str, Any], filepath: str, current_depth: int, max_depth: int
+def change_representation_full(
+    change: Dict[str, Any], link: str, filepath: str, current_depth: int, max_depth: int
 ) -> Optional[Any]:
     """
-    Returns nested part of report in a uncompressed format.
+    Generator of uncompressed html markdown.
     """
-    if current_depth >= max_depth:
-        return None
-
-    link = change.get("link")
-    if link is None:
-        link = filepath
-
     change_elements: List[Any] = [
         E.B("Name: "),
         E.A(change["name"], href=link),
@@ -193,23 +186,15 @@ def render_change_as_html(
             child_elements.append(child_element)
     change_elements.append(E.UL(*child_elements))
 
-    return E.LI(*change_elements)
+    return change_elements
 
 
-def render_change_as_compressed_html(
-    change: Dict[str, Any], filepath: str, current_depth: int, max_depth: int
+def change_representation_compressed(
+    change: Dict[str, Any], link: str, filepath: str, current_depth: int, max_depth: int
 ) -> Optional[Any]:
     """
-    Returns nested part of report in a compact format.
-    Useful for large changes as it allows to perceive more functions and classes.
+    Generator of compressed html markdown.
     """
-    if current_depth >= max_depth:
-        return None
-
-    link = change.get("link")
-    if link is None:
-        link = filepath
-
     change_elements: List[Any] = [
         E.B(change["type"]),
         E.SPAN(" "),
@@ -225,12 +210,41 @@ def render_change_as_compressed_html(
         change_elements.extend([E.BR()])
     child_elements = []
     for child in change["children"]:
-        child_element = render_change_as_compressed_html(
-            child, filepath, current_depth + 1, max_depth
+        child_element = render_change_as_html(
+            child, filepath, current_depth + 1, max_depth, True
         )
         if child_element is not None:
             child_elements.append(child_element)
     change_elements.append(E.UL(*child_elements))
+
+    return change_elements
+
+
+def render_change_as_html(
+    change: Dict[str, Any],
+    filepath: str,
+    current_depth: int,
+    max_depth: int,
+    compressed: Optional[bool] = False,
+) -> Optional[Any]:
+    """
+    Returns nested part of report in compressed or uncompressed format.
+    """
+    if current_depth >= max_depth:
+        return None
+
+    link = change.get("link")
+    if link is None:
+        link = filepath
+
+    if compressed:
+        change_elements = change_representation_compressed(
+            change, link, filepath, current_depth, max_depth
+        )
+    else:
+        change_elements = change_representation_full(
+            change, link, filepath, current_depth, max_depth
+        )
 
     return E.LI(*change_elements)
 
@@ -250,7 +264,10 @@ def html_file_section_handler_vanilla(item: Dict[str, Any]) -> Any:
 
 
 def generate_html_section_handler_github(
-    render_change: Callable[[Dict[str, Any], str, int, int], Optional[Any]]
+    render_change: Callable[
+        [Dict[str, Any], str, int, int, Optional[bool]], Optional[Any]
+    ],
+    compressed: Optional[bool] = False,
 ) -> Callable[[Any], Any]:
     """
     Generates a change wrapper, inside which contains a report on each
@@ -261,7 +278,8 @@ def generate_html_section_handler_github(
         filepath = item["file"]
         file_url = item.get("file_url", filepath)
         change_elements = [
-            render_change(change, filepath, 0, 2) for change in item["changes"]
+            render_change(change, filepath, 0, 2, compressed)
+            for change in item["changes"]
         ]
         file_summary_element = E.A(filepath, href=file_url)
         file_elements = [
@@ -369,11 +387,15 @@ renderers: Dict[str, Callable[[Dict[str, List[NestedChange]]], str]] = {
     "json": render_json,
     "yaml": render_yaml,
     "html": generate_render_html(html_file_section_handler_vanilla),
+    # html-github kept for for backwards compatibility
     "html-github": generate_render_html(
         generate_html_section_handler_github(render_change_as_html)
     ),
-    "html-github-short": generate_render_html(
-        generate_html_section_handler_github(render_change_as_compressed_html)
+    "github": generate_render_html(
+        generate_html_section_handler_github(render_change_as_html, compressed=True)
+    ),
+    "github-full": generate_render_html(
+        generate_html_section_handler_github(render_change_as_html)
     ),
 }
 
