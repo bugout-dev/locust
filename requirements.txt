@@ -12,7 +12,7 @@ docutils==0.16
 idna==2.10
 jeepney==0.4.3
 keyring==21.4.0
-lxml==4.5.2
+lxml==4.6.2
 mypy==0.782
 mypy-extensions==0.4.3
 mypy-protobuf==1.23
