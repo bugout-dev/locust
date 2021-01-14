@@ -22,6 +22,4 @@ jobs:
       - name: Black syntax check
         run: black --check --exclude '(.*_pb2.*|build|dist)' locust/
       - name: Run Locust unit tests
-        env:
-          LOCUST_TESTCASES_DIR: locust-test-cases/
-        run: sh test.sh
+        run: LOCUST_TESTCASES_DIR="$PWD/locust-test-cases/" sh test.sh
