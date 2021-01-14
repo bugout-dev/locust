@@ -1,12 +1,17 @@
-name: Lint Python code
+name: Locust linting and tests
 
-on: [pull_request]
+on: [push]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          repository: bugout-dev/locust-test-cases
+          path: locust-test-cases
       - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
@@ -16,3 +21,7 @@ jobs:
         run: mypy locust/
       - name: Black syntax check
         run: black --check --exclude '(.*_pb2.*|build|dist)' locust/
+      - name: Run Locust unit tests
+        env:
+          LOCUST_TESTCASES_DIR: locust-test-cases/
+        run: sh test.sh
