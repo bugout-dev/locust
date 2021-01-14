@@ -18,7 +18,6 @@ mypy-extensions==0.4.3
 mypy-protobuf==1.23
 packaging==20.4
 pathspec==0.8.0
-pkg-resources==0.0.0
 pkginfo==1.5.0.1
 protobuf==3.13.0
 pycparser==2.20
