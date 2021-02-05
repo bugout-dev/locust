@@ -22,7 +22,7 @@ pkginfo==1.5.0.1
 protobuf==3.13.0
 pycparser==2.20
 pydantic==1.6.1
-pygit2==1.3.0
+pygit2==1.5.0
 Pygments==2.7.1
 pyparsing==2.4.7
 PyYAML==5.3.1
