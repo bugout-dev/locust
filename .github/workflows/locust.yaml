@@ -47,4 +47,4 @@ jobs:
           curl -k -X POST "https://spire.bugout.dev/github/summary" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $BUGOUT_SECRET" \
-            --data '${{ steps.locust.outputs.summary }}'
+            --data '${{ steps.clean_summary.outputs.summary }}'
