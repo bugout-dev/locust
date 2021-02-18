@@ -44,7 +44,7 @@ def main():
 
     results_string = render.run(parse_result, args.format, args.github, args.metadata)
 
-    if args.url is not None and args.token is not None:
+    if args.url is not None:
         push.run(
             parse_result, args.url, args.action, args.github, args.token, args.metadata
         )
