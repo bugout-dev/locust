@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 
 from . import git
 from . import parse
+from . import push
 from . import render
 from . import version
 
@@ -21,6 +22,7 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     git.populate_argument_parser(parser)
     parse.populate_argument_parser(parser)
     render.populate_argument_parser(parser)
+    push.populate_argument_parser(parser)
     parser.add_argument(
         "-o",
         "--output",
@@ -41,6 +43,11 @@ def main():
     parse_result = parse.run(git_result, args.plugins)
 
     results_string = render.run(parse_result, args.format, args.github, args.metadata)
+
+    if args.url is not None and args.token is not None:
+        push.run(
+            parse_result, args.url, args.action, args.github, args.token, args.metadata
+        )
 
     try:
         with args.output as ofp:
