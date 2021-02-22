@@ -126,6 +126,46 @@ Locust is easy to use in CI/CD pipelines:
 
 - [Locust GitHub Action](https://github.com/simiotics/locust-action)
 
+### Bugout App integration
+
+You can use Locust with our [Bugout GitHub Bot](https://github.com/bugout-dev/github-demo).
+Locust extension will work after you push `./github/workflows/locust.yml` file in `main` branch:
+
+```yaml
+name: Locust summary
+on: [pull_request_target]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: PR head repo
+        id: head_repo_name
+        run: |
+          HEAD_REPO_NAME=$(jq -r '.pull_request.head.repo.full_name' "$GITHUB_EVENT_PATH")
+          echo "PR head repo: $HEAD_REPO_NAME"
+          echo "::set-output name=repo::$HEAD_REPO_NAME"
+      - name: Checkout git repo
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ steps.head_repo_name.outputs.repo }}
+          fetch-depth: 0
+      - name: Install python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          pip install bugout-locust
+      - name: Generate and send Locust summary
+        env:
+          BUGOUT_SECRET: ${{ secrets.BUGOUT_SECRET }}
+        run: |
+          locust.github send
+```
+
+BUGOUT_SECRET should be setted up in repository/organization secrets. Value you can take from Bugout Account token page. Also `BUGOUT_API_URL: ${{ secrets.BUGOUT_API_URL }}` could be specified if you want to setup your personal server for processing locust summaries.
+
 ### Docker
 
 To run Locust using docker:
