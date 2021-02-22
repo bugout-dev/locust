@@ -7,9 +7,31 @@ import json
 import os
 from typing import Any, Callable, Dict, List, Optional
 
+import requests
+
+from .. import git
+from .. import parse
+from .. import render
+
+
+class ErrorDueSendingSummary(Exception):
+    """
+    Raised when error occured due sending locust summary.
+    """
+
 
 def generate_argument_parser() -> argparse.ArgumentParser:
-    commands = ["type", "initial", "terminal", "repo"]
+    """
+    Commands in GitHub Action:
+      - name: Generate Locust summary and send to API
+        env:
+          BUGOUT_SECRET: ${{ secrets.BUGOUT_SECRET }}
+          BUGOUT_API_URL: ${{ secrets.BUGOUT_API_URL }}
+        run: |
+          INITIAL_REF=$(locust.github initial)
+          locust.github publish
+    """
+    commands = ["type", "initial", "terminal", "repo", "publish"]
     parser = argparse.ArgumentParser(description="Locust GitHub Actions helper")
     parser.add_argument(
         "command",
@@ -19,33 +41,93 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def publish(
+    repo_url: str,
+    initial: str,
+    terminal: str,
+    comments_url: str,
+) -> str:
+    """
+    Publish locust summary to API.
+    """
+    git_result = git.run(".", initial, terminal)
+    plugins: List[str] = []
+    parse_result = parse.run(git_result, plugins)
+    metadata: Dict[str, str] = {
+        "comments_url": comments_url,
+        "terminal_hash": terminal,
+    }
+
+    results_json = render.run(
+        parse_result,
+        "json",
+        repo_url,
+        metadata,
+    )
+
+    url = os.environ.get("BUGOUT_API_URL", "https://spire.bugout.dev/github/summary")
+    token = os.environ.get("BUGOUT_SECRET")
+    headers = {"Content-Type": "application/json"}
+    if token is not None:
+        headers.update({"Authorization": f"Bearer {token}"})
+
+    try:
+        r = requests.post(url=url, data=results_json, headers=headers)
+        r.raise_for_status()
+    except Exception as e:
+        raise ErrorDueSendingSummary(f"Exception {str(e)}")
+
+    return "Locust summary sent to API"
+
+
 def helper_push(command: str, event: Dict[str, Any]) -> str:
     """
+    Process trigger on: [ push ] at GitHub Actions.
+
     Event structure defined here:
     https://docs.github.com/en/free-pro-team@latest/developers/webhooks-and-events/webhook-events-and-payloads#push
     """
+    pull_request = event["pull_request"]
+    initial = event["before"]
+    terminal = event["after"]
+    repo_url = event["repository"]["html_url"]
+    comments_url = pull_request["_links"]["comments"]["href"]
+
     if command == "initial":
-        return event["before"]
+        return initial
     elif command == "terminal":
-        return event["after"]
+        return terminal
     elif command == "repo":
-        return event["repository"]["html_url"]
+        return repo_url
+    elif command == "publish":
+        result = publish(repo_url, initial, terminal, comments_url)
+        return result
 
     raise Exception(f"Unknown command: {command}")
 
 
 def helper_pr(command: str, event: Dict[str, Any]) -> str:
     """
+    Process trigger on: [ pull_request ] or [ pull_request_target ] at GitHub Actions.
+
     Event structure defined here:
     https://docs.github.com/en/free-pro-team@latest/developers/webhooks-and-events/webhook-events-and-payloads#pull_request
     """
     pull_request = event["pull_request"]
+    initial = pull_request["base"]["sha"]
+    terminal = pull_request["head"]["sha"]
+    repo_url = pull_request["head"]["repo"]["html_url"]
+    comments_url = pull_request["_links"]["comments"]["href"]
+
     if command == "initial":
-        return pull_request["base"]["sha"]
+        return initial
     elif command == "terminal":
-        return pull_request["head"]["sha"]
+        return terminal
     elif command == "repo":
-        return pull_request["head"]["repo"]["html_url"]
+        return repo_url
+    elif command == "publish":
+        result = publish(repo_url, initial, terminal, comments_url)
+        return result
 
     raise Exception(f"Unknown command: {command}")
 
