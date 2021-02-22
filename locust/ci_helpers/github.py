@@ -7,9 +7,11 @@ import json
 import os
 from typing import Any, Callable, Dict, List, Optional
 
+import requests
+
 
 def generate_argument_parser() -> argparse.ArgumentParser:
-    commands = ["type", "initial", "terminal", "repo"]
+    commands = ["type", "initial", "terminal", "repo", "send"]
     parser = argparse.ArgumentParser(description="Locust GitHub Actions helper")
     parser.add_argument(
         "command",
@@ -17,6 +19,10 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         help="Information you would like this helper to provide",
     )
     return parser
+
+
+def send(event: Dict[str, Any]) -> None:
+    print(123)
 
 
 def helper_push(command: str, event: Dict[str, Any]) -> str:
@@ -30,6 +36,8 @@ def helper_push(command: str, event: Dict[str, Any]) -> str:
         return event["after"]
     elif command == "repo":
         return event["repository"]["html_url"]
+    elif command == "send":
+        send(event)
 
     raise Exception(f"Unknown command: {command}")
 
@@ -46,6 +54,8 @@ def helper_pr(command: str, event: Dict[str, Any]) -> str:
         return pull_request["head"]["sha"]
     elif command == "repo":
         return pull_request["head"]["repo"]["html_url"]
+    elif command == "send":
+        send(event)
 
     raise Exception(f"Unknown command: {command}")
 

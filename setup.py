@@ -10,7 +10,7 @@ setup(
     name="bugout-locust",
     version=LOCUST_VERSION,
     packages=find_packages(),
-    install_requires=["pygit2", "PyYAML", "lxml", "pydantic", "protobuf"],
+    install_requires=["pygit2", "PyYAML", "lxml", "pydantic", "protobuf", "requests"],
     extras_require={
         "dev": ["black", "mypy", "wheel", "mypy-protobuf"],
         "distribute": ["twine"],
