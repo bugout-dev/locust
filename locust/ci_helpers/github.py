@@ -81,7 +81,7 @@ def helper_push(command: str, event: Dict[str, Any]) -> str:
     initial = event["before"]
     terminal = event["after"]
     repo = event["repository"]["html_url"]
-    comments_url = pull_request["pull_request"]["_links"]["comments"]["href"]
+    comments_url = pull_request["_links"]["comments"]["href"]
 
     if command == "initial":
         return initial
@@ -107,7 +107,7 @@ def helper_pr(command: str, event: Dict[str, Any]) -> str:
     initial = pull_request["base"]["sha"]
     terminal = pull_request["head"]["sha"]
     repo = pull_request["head"]["repo"]["html_url"]
-    comments_url = pull_request["pull_request"]["_links"]["comments"]["href"]
+    comments_url = pull_request["_links"]["comments"]["href"]
 
     if command == "initial":
         return initial
