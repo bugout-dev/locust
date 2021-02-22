@@ -12,7 +12,6 @@ import requests
 from .. import git
 from .. import parse
 from .. import render
-from .. import version
 
 
 class ErrorDueSendingSummary(Exception):
@@ -22,6 +21,16 @@ class ErrorDueSendingSummary(Exception):
 
 
 def generate_argument_parser() -> argparse.ArgumentParser:
+    """
+    Commands in GitHub Action:
+      - name: Generate Locust summary and send to API
+        env:
+          BUGOUT_SECRET: ${{ secrets.BUGOUT_SECRET }}
+          BUGOUT_API_URL: ${{ secrets.BUGOUT_API_URL }}
+        run: |
+          INITIAL_REF=$(locust.github initial)
+          locust.github send
+    """
     commands = ["type", "initial", "terminal", "repo", "send"]
     parser = argparse.ArgumentParser(description="Locust GitHub Actions helper")
     parser.add_argument(
@@ -39,11 +48,9 @@ def send(
     comments_url: str,
 ) -> str:
     """
-    Bugout GitHub Bot application.
-    Send locust summary to Bugout API.
+    Send locust summary to API.
     """
-    repo_dir = "."
-    git_result = git.run(repo_dir, initial, terminal)
+    git_result = git.run(".", initial, terminal)
     plugins: List[str] = []
     parse_result = parse.run(git_result, plugins)
     metadata: Dict[str, str] = {
@@ -60,7 +67,9 @@ def send(
 
     url = os.environ.get("BUGOUT_API_URL", "https://spire.bugout.dev/github/summary")
     token = os.environ.get("BUGOUT_SECRET")
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {"Content-Type": "application/json"}
+    if token is not None:
+        headers.update({"Authorization": f"Bearer {token}"})
 
     try:
         r = requests.post(url=url, data=results_json, headers=headers)
