@@ -161,7 +161,7 @@ jobs:
         env:
           BUGOUT_SECRET: ${{ secrets.BUGOUT_SECRET }}
         run: |
-          locust.github send
+          locust.github publish
 ```
 
 BUGOUT_SECRET should be setted up in repository/organization secrets. Value you can take from Bugout Account token page. Also `BUGOUT_API_URL: ${{ secrets.BUGOUT_API_URL }}` could be specified if you want to setup your personal server for processing locust summaries.

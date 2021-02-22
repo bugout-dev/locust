@@ -29,4 +29,4 @@ jobs:
         env:
           BUGOUT_SECRET: ${{ secrets.BUGOUT_SECRET }}
         run: |
-          locust.github send
+          locust.github publish

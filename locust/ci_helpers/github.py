@@ -29,9 +29,9 @@ def generate_argument_parser() -> argparse.ArgumentParser:
           BUGOUT_API_URL: ${{ secrets.BUGOUT_API_URL }}
         run: |
           INITIAL_REF=$(locust.github initial)
-          locust.github send
+          locust.github publish
     """
-    commands = ["type", "initial", "terminal", "repo", "send"]
+    commands = ["type", "initial", "terminal", "repo", "publish"]
     parser = argparse.ArgumentParser(description="Locust GitHub Actions helper")
     parser.add_argument(
         "command",
@@ -41,14 +41,14 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def send(
+def publish(
     repo_url: str,
     initial: str,
     terminal: str,
     comments_url: str,
 ) -> str:
     """
-    Send locust summary to API.
+    Publish locust summary to API.
     """
     git_result = git.run(".", initial, terminal)
     plugins: List[str] = []
@@ -99,8 +99,8 @@ def helper_push(command: str, event: Dict[str, Any]) -> str:
         return terminal
     elif command == "repo":
         return repo_url
-    elif command == "send":
-        result = send(repo_url, initial, terminal, comments_url)
+    elif command == "publish":
+        result = publish(repo_url, initial, terminal, comments_url)
         return result
 
     raise Exception(f"Unknown command: {command}")
@@ -125,8 +125,8 @@ def helper_pr(command: str, event: Dict[str, Any]) -> str:
         return terminal
     elif command == "repo":
         return repo_url
-    elif command == "send":
-        result = send(repo_url, initial, terminal, comments_url)
+    elif command == "publish":
+        result = publish(repo_url, initial, terminal, comments_url)
         return result
 
     raise Exception(f"Unknown command: {command}")
