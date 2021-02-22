@@ -9,6 +9,17 @@ from typing import Any, Callable, Dict, List, Optional
 
 import requests
 
+from .. import git
+from .. import parse
+from .. import render
+from .. import version
+
+
+class ErrorDueSendingSummary(Exception):
+    """
+    Raised when error occured due sending locust summary.
+    """
+
 
 def generate_argument_parser() -> argparse.ArgumentParser:
     commands = ["type", "initial", "terminal", "repo", "send"]
@@ -21,41 +32,92 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def send(event: Dict[str, Any]) -> None:
-    print(123)
+def send(
+    repo_dir: str,
+    initial: str,
+    terminal: str,
+    comments_url: str,
+) -> str:
+    """
+    Bugout GitHub Bot application.
+    Send locust summary to Bugout API.
+    """
+    git_result = git.run(repo_dir, initial, terminal)
+    plugins: List[str] = []
+    parse_result = parse.run(git_result, plugins)
+    metadata: Dict[str, str] = {
+        "comments_url": comments_url,
+        "terminal_hash": terminal,
+    }
+
+    results_json = render.run(
+        parse_result,
+        "json",
+        repo_dir,
+        metadata,
+    )
+
+    url = os.environ.get("BUGOUT_API_URL", "https://spire.bugout.dev/github/summary")
+    token = os.environ.get("BUGOUT_SECRET")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    try:
+        r = requests.post(url=url, data=results_json, headers=headers)
+        r.raise_for_status()
+    except Exception as e:
+        raise ErrorDueSendingSummary(f"Exception {str(e)}")
+
+    return "Locust summary sent to API"
 
 
 def helper_push(command: str, event: Dict[str, Any]) -> str:
     """
+    Process trigger on: [ push ] at GitHub Actions.
+
     Event structure defined here:
     https://docs.github.com/en/free-pro-team@latest/developers/webhooks-and-events/webhook-events-and-payloads#push
     """
+    pull_request = event["pull_request"]
+    initial = event["before"]
+    terminal = event["after"]
+    repo = event["repository"]["html_url"]
+    comments_url = pull_request["pull_request"]["_links"]["comments"]["href"]
+
     if command == "initial":
-        return event["before"]
+        return initial
     elif command == "terminal":
-        return event["after"]
+        return terminal
     elif command == "repo":
-        return event["repository"]["html_url"]
+        return repo
     elif command == "send":
-        send(event)
+        result = send(repo, initial, terminal, comments_url)
+        return result
 
     raise Exception(f"Unknown command: {command}")
 
 
 def helper_pr(command: str, event: Dict[str, Any]) -> str:
     """
+    Process trigger on: [ pull_request ] or [ pull_request_target ] at GitHub Actions.
+
     Event structure defined here:
     https://docs.github.com/en/free-pro-team@latest/developers/webhooks-and-events/webhook-events-and-payloads#pull_request
     """
     pull_request = event["pull_request"]
+    initial = pull_request["base"]["sha"]
+    terminal = pull_request["head"]["sha"]
+    repo = pull_request["head"]["repo"]["html_url"]
+    comments_url = pull_request["pull_request"]["_links"]["comments"]["href"]
+
     if command == "initial":
-        return pull_request["base"]["sha"]
+        return initial
     elif command == "terminal":
-        return pull_request["head"]["sha"]
+        return terminal
     elif command == "repo":
-        return pull_request["head"]["repo"]["html_url"]
+        return repo
     elif command == "send":
-        send(event)
+        result = send(repo, initial, terminal, comments_url)
+        return result
 
     raise Exception(f"Unknown command: {command}")
 
