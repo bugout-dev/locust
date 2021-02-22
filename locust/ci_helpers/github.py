@@ -33,7 +33,7 @@ def generate_argument_parser() -> argparse.ArgumentParser:
 
 
 def send(
-    repo_dir: str,
+    repo_url: str,
     initial: str,
     terminal: str,
     comments_url: str,
@@ -42,6 +42,7 @@ def send(
     Bugout GitHub Bot application.
     Send locust summary to Bugout API.
     """
+    repo_dir = "."
     git_result = git.run(repo_dir, initial, terminal)
     plugins: List[str] = []
     parse_result = parse.run(git_result, plugins)
@@ -53,7 +54,7 @@ def send(
     results_json = render.run(
         parse_result,
         "json",
-        repo_dir,
+        repo_url,
         metadata,
     )
 
@@ -80,7 +81,7 @@ def helper_push(command: str, event: Dict[str, Any]) -> str:
     pull_request = event["pull_request"]
     initial = event["before"]
     terminal = event["after"]
-    repo = event["repository"]["html_url"]
+    repo_url = event["repository"]["html_url"]
     comments_url = pull_request["_links"]["comments"]["href"]
 
     if command == "initial":
@@ -88,9 +89,9 @@ def helper_push(command: str, event: Dict[str, Any]) -> str:
     elif command == "terminal":
         return terminal
     elif command == "repo":
-        return repo
+        return repo_url
     elif command == "send":
-        result = send(repo, initial, terminal, comments_url)
+        result = send(repo_url, initial, terminal, comments_url)
         return result
 
     raise Exception(f"Unknown command: {command}")
@@ -106,7 +107,7 @@ def helper_pr(command: str, event: Dict[str, Any]) -> str:
     pull_request = event["pull_request"]
     initial = pull_request["base"]["sha"]
     terminal = pull_request["head"]["sha"]
-    repo = pull_request["head"]["repo"]["html_url"]
+    repo_url = pull_request["head"]["repo"]["html_url"]
     comments_url = pull_request["_links"]["comments"]["href"]
 
     if command == "initial":
@@ -114,9 +115,9 @@ def helper_pr(command: str, event: Dict[str, Any]) -> str:
     elif command == "terminal":
         return terminal
     elif command == "repo":
-        return repo
+        return repo_url
     elif command == "send":
-        result = send(repo, initial, terminal, comments_url)
+        result = send(repo_url, initial, terminal, comments_url)
         return result
 
     raise Exception(f"Unknown command: {command}")
