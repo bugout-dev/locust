@@ -33,6 +33,8 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     """
     commands = ["type", "initial", "terminal", "repo", "publish"]
     parser = argparse.ArgumentParser(description="Locust GitHub Actions helper")
+    git.populate_argument_parser(parser)
+    parse.populate_argument_parser(parser)
     parser.add_argument(
         "command",
         choices=commands,
@@ -46,12 +48,13 @@ def publish(
     initial: str,
     terminal: str,
     comments_url: str,
+    plugins: List[str],
+    repo_dir: str,
 ) -> str:
     """
     Publish locust summary to API.
     """
-    git_result = git.run(".", initial, terminal)
-    plugins: List[str] = []
+    git_result = git.run(repo_dir, initial, terminal)
     parse_result = parse.run(git_result, plugins)
     metadata: Dict[str, str] = {
         "comments_url": comments_url,
@@ -80,7 +83,7 @@ def publish(
     return "Locust summary sent to API"
 
 
-def helper_push(command: str, event: Dict[str, Any]) -> str:
+def helper_push(args: argparse.Namespace, event: Dict[str, Any]) -> str:
     """
     Process trigger on: [ push ] at GitHub Actions.
 
@@ -93,20 +96,22 @@ def helper_push(command: str, event: Dict[str, Any]) -> str:
     repo_url = event["repository"]["html_url"]
     comments_url = pull_request["_links"]["comments"]["href"]
 
-    if command == "initial":
+    if args.command == "initial":
         return initial
-    elif command == "terminal":
+    elif args.command == "terminal":
         return terminal
-    elif command == "repo":
+    elif args.command == "repo":
         return repo_url
-    elif command == "publish":
-        result = publish(repo_url, initial, terminal, comments_url)
+    elif args.command == "publish":
+        result = publish(
+            repo_url, initial, terminal, comments_url, args.plugins, args.repo
+        )
         return result
 
-    raise Exception(f"Unknown command: {command}")
+    raise Exception(f"Unknown command: {args.command}")
 
 
-def helper_pr(command: str, event: Dict[str, Any]) -> str:
+def helper_pr(args: argparse.Namespace, event: Dict[str, Any]) -> str:
     """
     Process trigger on: [ pull_request ] or [ pull_request_target ] at GitHub Actions.
 
@@ -119,17 +124,19 @@ def helper_pr(command: str, event: Dict[str, Any]) -> str:
     repo_url = pull_request["head"]["repo"]["html_url"]
     comments_url = pull_request["_links"]["comments"]["href"]
 
-    if command == "initial":
+    if args.command == "initial":
         return initial
-    elif command == "terminal":
+    elif args.command == "terminal":
         return terminal
-    elif command == "repo":
+    elif args.command == "repo":
         return repo_url
-    elif command == "publish":
-        result = publish(repo_url, initial, terminal, comments_url)
+    elif args.command == "publish":
+        result = publish(
+            repo_url, initial, terminal, comments_url, args.plugins, args.repo
+        )
         return result
 
-    raise Exception(f"Unknown command: {command}")
+    raise Exception(f"Unknown command: {args.command}")
 
 
 def main():
@@ -160,7 +167,7 @@ def main():
     with open(github_event_path, "r") as ifp:
         event: Dict[str, Any] = json.load(ifp)
 
-    print(helpers[github_event_name](args.command, event))
+    print(helpers[github_event_name](args, event))
     return
 
 
