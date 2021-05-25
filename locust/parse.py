@@ -20,10 +20,6 @@ from . import git
 from .parse_pb2 import RawDefinition, LocustChange, ParseResult, DefinitionParent
 
 
-class LocustASTTraversalError(Exception):
-    pass
-
-
 class ContextType(Enum):
     UNKNOWN = "unknown"
     FUNCTION_DEF = "function"
@@ -198,10 +194,11 @@ class LocustVisitor(ast.NodeVisitor):
             elif isinstance(current, ast.Attribute):
                 components.append(current.attr)
                 current = current.value
+            elif isinstance(current, ast.Subscript):
+                current = current.value
             else:
-                raise LocustASTTraversalError(
-                    f"Could not process attribute component: {current}"
-                )
+                done = True
+
         components.reverse()
         cumulative_components = [
             ".".join(components[: i + 1]) for i in range(len(components))
