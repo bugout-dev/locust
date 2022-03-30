@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.8"
       - name: Install requirements
-        run: pip install -r requirements.txt
+        run: pip -e .[dev]
       - name: Mypy type check
         run: mypy locust/
       - name: Black syntax check
