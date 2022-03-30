@@ -12,7 +12,7 @@ setup(
     packages=find_packages(),
     install_requires=["pygit2", "PyYAML", "lxml", "pydantic", "protobuf", "requests"],
     extras_require={
-        "dev": ["black", "mypy", "wheel", "mypy-protobuf"],
+        "dev": ["black", "mypy", "wheel", "mypy-protobuf", "types-PyYAML", "types-requests"],
         "distribute": ["twine"],
     },
     description="Locust: Track changes to Python code across git refs",
