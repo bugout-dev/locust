@@ -1,4 +1,4 @@
-LOCUST_VERSION = "0.2.8"
+LOCUST_VERSION = "0.3.0"
 
 
 def main():
