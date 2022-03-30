@@ -21,7 +21,7 @@ pathspec==0.8.0
 pkginfo==1.5.0.1
 protobuf==3.13.0
 pycparser==2.20
-pydantic==1.6.1
+pydantic==1.6.2
 pygit2==1.5.0
 Pygments==2.7.1
 pyparsing==2.4.7
