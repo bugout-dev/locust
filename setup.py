@@ -10,6 +10,7 @@ setup(
     name="bugout-locust",
     version=LOCUST_VERSION,
     packages=find_packages(),
+    package_data={"locust": ["sitter/locust-sitter.so"]},
     install_requires=[
         "pygit2",
         "PyYAML",
@@ -48,6 +49,7 @@ setup(
             "locust.parse=locust.parse:main",
             "locust.render=locust.render:main",
             "locust.github=locust.ci_helpers.github:main",
+            "locust.sitter.build=locust.sitter.build:main",
         ]
     },
 )

@@ -1,3 +1,6 @@
 [submodule "java"]
 	path = java
 	url = git@github.com:carise/locust-java.git
+[submodule "vendor/tree-sitter-go"]
+	path = vendor/tree-sitter-go
+	url = git@github.com:tree-sitter/tree-sitter-go.git

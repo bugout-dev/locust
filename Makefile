@@ -32,10 +32,14 @@ locust/render_pb2.pyi:
 	protoc -Iprotobuf/ --mypy_out=locust/ protobuf/render.proto
 	sed -i -e 's/from parse_pb2 import /from \.parse_pb2 import/g' locust/render_pb2.pyi
 
-build dist bugout_locust.egg-info:
+locust/sitter/locust-sitter.so:
+	python -m locust.sitter.build
+
+build dist bugout_locust.egg-info: protogen locust/sitter/locust-sitter.so
 	python setup.py sdist bdist_wheel
 
 clean:
 	rm -f locust/*_pb2.py
 	rm -f locust/*_pb2.pyi
 	rm -rf dist/ build/ bugout_locust.egg-info/
+	rm -f locust/sitter/locust-sitter.so
