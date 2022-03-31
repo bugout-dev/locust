@@ -224,3 +224,32 @@ The goals of Locust are different from those of Kythe. Locust is specifically ab
 metadata describing _changes_ to code.
 
 Kythe on GitHub: https://github.com/kythe/kythe
+
+### Semgrep
+
+[Semgrep](https://semgrep.dev) is a static analyzer that allows you to match patterns in working code
+using static analysis rather than performing string-based grep on the code base.
+
+They also allow you to define transformations for matches.
+
+The goal of Locust is to build a knowledge base of semantic changes to a code base over time for upstream
+analysis and automation.
+
+Semgrep on GitHub: https://github.com/returntocorp/semgrep
+
+### Comby
+
+[Comby](https://comby.dev/), like Semgrep, focuses on providing syntax-aware search-and-replace functionality
+for code bases.
+
+Comby on GitHub: https://github.com/comby-tools/comby
+
+### difftastic
+
+Difftastic detects changes to code based on syntax rather than providing line-by-line diffs of the
+files.
+
+Difftastic focuses on producing human-readable output whereas Locust focuses on building a knowledge
+base of semantic changes to a code base over time (commits).
+
+Difftastic on GitHub: https://github.com/Wilfred/difftastic
