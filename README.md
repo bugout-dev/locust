@@ -19,6 +19,11 @@ This metadata is useful to both humans and computers. For example:
 2. (Computers) [Bugout.dev](https://alpha.bugout.dev) uses Locust metadata to learn high level
    abstractions about code.
 
+Locust metadata lists all changes in a codebase between two git references. The changes are listed
+by file, and each change has an associated type which describes the programming language semantics
+of the change - e.g. whether the change involved a dependency or a new class or a new function. For more
+information about supported semantics, see: [Locust definition types](docs/deftypes.md).
+
 ## Installation
 
 Locust requires Python3 (specifically, it was written in Python3.8).
