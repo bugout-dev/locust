@@ -132,7 +132,7 @@ function getDefinitions(source, sourceFilename) {
             }
             var name_1 = idNode.name;
             if (parent_1) {
-                name_1 = parent_1.name + "." + name_1;
+                name_1 = "".concat(parent_1.name, ".").concat(name_1);
             }
             var definition = {
                 name: name_1,
@@ -147,7 +147,7 @@ function getDefinitions(source, sourceFilename) {
             scope.push([name_1, (_a = node.loc) === null || _a === void 0 ? void 0 : _a.start.line, (_b = node.loc) === null || _b === void 0 ? void 0 : _b.end.line]);
         }
     }
-    traverse_1.default(ast, {
+    (0, traverse_1.default)(ast, {
         // For now, we skip all anonymous functions
         FunctionExpression: function (path) {
             path.skip();
@@ -200,7 +200,7 @@ function writeOutput(patchDefinitions, outfile) {
         console.log(output);
     }
     else {
-        fs_1.writeFileSync(outfile, output);
+        (0, fs_1.writeFileSync)(outfile, output);
     }
 }
 exports.writeOutput = writeOutput;

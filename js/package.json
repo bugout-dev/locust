@@ -1,12 +1,12 @@
 {
-  "name": "@bugout/locust",
+  "name": "@bugout/locust-js",
   "version": "0.1.1",
-  "description": "Locust code review tool for Javascript",
+  "description": "Locust static analysis plugin for Javascript",
   "main": "build/index.js",
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/simiotics/locust.git"
+    "url": "git+https://github.com/bugout-dev/locust.git"
   },
   "keywords": [
     "code-review",
