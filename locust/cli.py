@@ -7,10 +7,7 @@ import os
 import sys
 from typing import Any, Dict, Optional
 
-from . import git
-from . import parse
-from . import render
-from . import version
+from . import git, parse, render, version
 
 
 def generate_argument_parser() -> argparse.ArgumentParser:

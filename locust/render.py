@@ -9,10 +9,10 @@ import sys
 import textwrap
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
-from google.protobuf.json_format import Parse
 import lxml
-from lxml.html import builder as E
 import yaml
+from google.protobuf.json_format import Parse
+from lxml.html import builder as E
 
 from . import parse
 from .render_pb2 import IndexKey, NestedChange

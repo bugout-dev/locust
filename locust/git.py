@@ -7,10 +7,10 @@ import os
 import sys
 from typing import Any, List, Optional, Tuple
 
-from google.protobuf.json_format import MessageToDict
 import pygit2
+from google.protobuf.json_format import MessageToDict
 
-from .git_pb2 import LineInfo, HunkBoundary, HunkInfo, PatchInfo, GitResult
+from .git_pb2 import GitResult, HunkBoundary, HunkInfo, LineInfo, PatchInfo
 
 
 class GitRepositoryNotFound(Exception):

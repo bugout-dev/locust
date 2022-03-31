@@ -9,9 +9,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import requests
 
-from .. import git
-from .. import parse
-from .. import render
+from .. import git, parse, render
 
 
 class ErrorDueSendingSummary(Exception):

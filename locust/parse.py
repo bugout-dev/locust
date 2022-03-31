@@ -3,21 +3,19 @@ AST-related functionality
 """
 import argparse
 import ast
-from dataclasses import dataclass, field
-from enum import Enum
 import json
 import os
 import subprocess
 import sys
 import tempfile
-from typing import Any, Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, List, Optional, Tuple, Union
 
 from google.protobuf.json_format import MessageToDict, Parse, ParseDict
-from pydantic import BaseModel
-from pygit2 import Repository
 
 from . import git
-from .parse_pb2 import RawDefinition, LocustChange, ParseResult, DefinitionParent
+from .parse_pb2 import DefinitionParent, LocustChange, ParseResult, RawDefinition
 
 
 class ContextType(Enum):

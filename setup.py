@@ -23,6 +23,7 @@ setup(
     extras_require={
         "dev": [
             "black",
+            "isort",
             "mypy",
             "wheel",
             "mypy-protobuf",
