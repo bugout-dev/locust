@@ -1,3 +1,6 @@
 [submodule "java"]
 	path = java
 	url = git@github.com:carise/locust-java.git
+[submodule "cicada"]
+	path = cicada
+	url = git@github.com:bugout-dev/cicada.git
