@@ -2,7 +2,7 @@
   "name": "@bugout/locust-js",
   "version": "0.1.1",
   "description": "Locust static analysis plugin for Javascript",
-  "main": "build/index.js",
+  "main": "out/index.js",
   "scripts": {},
   "repository": {
     "type": "git",
