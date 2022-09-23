@@ -15,7 +15,7 @@ setup(
         "PyYAML",
         "lxml",
         "pydantic",
-        "protobuf==3.20.0",
+        "protobuf==3.20.2",
         "requests",
     ],
     extras_require={
