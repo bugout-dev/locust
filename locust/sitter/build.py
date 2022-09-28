@@ -7,12 +7,13 @@ from typing import Dict
 
 from tree_sitter import Language
 
+LIBNAME = "locust-sitter.so"
 SUPPORTED_LANGUAGES: Dict[str, str] = {"go": "tree-sitter-go"}
 
 
 def main() -> None:
     script_dir = os.path.realpath(os.path.dirname(__file__))
-    build_path = os.path.join(script_dir, "locust-sitter.so")
+    build_path = os.path.join(script_dir, LIBNAME)
     locust_root_dir = os.path.dirname(os.path.dirname(script_dir))
     vendor_dir = os.path.join(locust_root_dir, "vendor")
     language_dirs = [os.path.join(vendor_dir, v) for v in SUPPORTED_LANGUAGES.values()]
