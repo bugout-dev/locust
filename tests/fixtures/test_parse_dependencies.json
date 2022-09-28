@@ -312,6 +312,16 @@
       "parent": {}
     },
     {
+      "name": "json",
+      "change_type": "usage",
+      "filepath": "mod/submod/print.py",
+      "revision": "04cec01",
+      "line": 5,
+      "changed_lines": 1,
+      "total_lines": 1,
+      "parent": {}
+    },
+    {
       "name": "json.dumps",
       "change_type": "usage",
       "filepath": "mod/submod/print.py",

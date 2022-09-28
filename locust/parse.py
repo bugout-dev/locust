@@ -210,6 +210,15 @@ class LocustVisitor(ast.NodeVisitor):
             qualifications = symbols.get(cumulative_component)
             if qualifications:
                 for qualification in qualifications:
+                    origin_definition = RawDefinition(
+                        name=qualification,
+                        change_type=self.context_type.value,
+                        line=node.lineno,
+                        offset=node.col_offset,
+                        end_line=node.end_lineno,
+                        end_offset=node.end_col_offset,
+                        parent=parent,
+                    )
                     # Replace prefix with qualification in final_component
                     name = final_component.replace(
                         cumulative_component, qualification, 1
@@ -223,7 +232,8 @@ class LocustVisitor(ast.NodeVisitor):
                         end_offset=node.end_col_offset,
                         parent=parent,
                     )
-                    self.definitions.append(definition)
+
+                    self.definitions.extend([origin_definition ,definition])
 
     def reset(self):
         self.scope = []

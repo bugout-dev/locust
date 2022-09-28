@@ -20,6 +20,14 @@
           "children": []
         },
         {
+          "name": "argparse",
+          "type": "usage",
+          "line": 7,
+          "changed_lines": 1,
+          "total_lines": 1,
+          "children": []
+        },
+        {
           "name": "argparse.ArgumentParser",
           "type": "usage",
           "line": 7,
