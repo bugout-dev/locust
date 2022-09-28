@@ -233,7 +233,7 @@ class LocustVisitor(ast.NodeVisitor):
                         parent=parent,
                     )
 
-                    self.definitions.extend([origin_definition ,definition])
+                    self.definitions.extend([origin_definition, definition])
 
     def reset(self):
         self.scope = []
