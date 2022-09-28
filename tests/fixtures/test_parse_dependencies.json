@@ -312,7 +312,7 @@
       "parent": {}
     },
     {
-      "name": "json",
+      "name": "json.dumps",
       "change_type": "usage",
       "filepath": "mod/submod/print.py",
       "revision": "04cec01",

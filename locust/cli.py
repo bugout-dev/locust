@@ -2,10 +2,7 @@
 The Locust CLI
 """
 import argparse
-import json
-import os
 import sys
-from typing import Any, Dict, Optional
 
 from . import git
 from . import parse
@@ -17,6 +14,13 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Locust: Analyze Python code across git references",
         epilog=f"Version {version.LOCUST_VERSION}",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"locust {version.LOCUST_VERSION}",
+        help="Print the locust version",
     )
     git.populate_argument_parser(parser)
     parse.populate_argument_parser(parser)

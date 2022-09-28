@@ -127,7 +127,7 @@
       "parent": {}
     },
     {
-      "name": "argparse",
+      "name": "argparse.ArgumentParser",
       "change_type": "usage",
       "filepath": "sample.py",
       "revision": "0838585",

@@ -15,4 +15,6 @@ then
 	exit 1
 fi
 
-python -m unittest discover -v
+TEST_COMMAND=${@:-"discover -v"}
+
+python -m unittest $TEST_COMMAND
